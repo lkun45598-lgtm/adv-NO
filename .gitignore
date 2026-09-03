@@ -1,1 +1,20 @@
 *.npy
+
+# Local Python artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Editor and notebook artifacts
+.DS_Store
+.ipynb_checkpoints/
+
+# Task A/D datasets and training outputs are generated locally.  Published
+# report figures live under docs/figures instead.
+/data/
+/outputs/
+*.h5
+*.log
+
+# Internal agent planning documents are not part of the public project.
+/docs/superpowers/

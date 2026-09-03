@@ -36,6 +36,13 @@ The different models compared in this task are located in:
 - **GAN**: `3_flow_reconstruction/no/adv_training`
 - **Diffusion Model**: `3_flow_reconstruction/dm`
 
+This fork adds a mask-aware adv-NO workflow for PRE ocean-current and ERA5
+wind-field sparse reconstruction. See
+[`README_sparse_tasks.md`](3_flow_reconstruction/no/adv_training/README_sparse_tasks.md)
+for reproducible preprocessing, training, evaluation, and visualization
+commands. The complete experiment report and final figures are available in
+[`docs/PROJECT_REPORT.md`](docs/PROJECT_REPORT.md).
+
 ## Training
 
 To train a model, navigate to the corresponding model directory and run:

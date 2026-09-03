@@ -22,8 +22,10 @@ class FeatureExtractor(nn.Module):
         super().__init__()
         self.layers = layers
 
-        self.inp_shift = Par["out_shift"].reshape(1,-1,1,1,1)
-        self.inp_scale = Par["out_scale"].reshape(1,-1,1,1,1)
+        # Register normalization constants so ``.to(device)`` migrates them
+        # together with the frozen MedicalNet parameters.
+        self.register_buffer("inp_shift", Par["out_shift"].reshape(1, -1, 1, 1, 1))
+        self.register_buffer("inp_scale", Par["out_scale"].reshape(1, -1, 1, 1, 1))
 
         # Build model and replace first conv layer if needed
         self.model = resnet10(sample_input_D=64, sample_input_H=64, sample_input_W=64, num_seg_classes=2)
@@ -115,4 +117,3 @@ class UNetDiscriminatorSN(nn.Module):
         out = self.conv9(out)
 
         return out
-

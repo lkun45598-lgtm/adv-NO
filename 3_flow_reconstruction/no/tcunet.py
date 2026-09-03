@@ -273,6 +273,13 @@ class Unet3D(nn.Module):
     ):
         super().__init__()
         self.Par = Par
+        # Keep normalization tensors as buffers so DataParallel/DDP replicas
+        # move them with the module instead of retaining the primary device.
+        for name in ("inp_shift", "inp_scale", "out_shift", "out_scale",
+                     "t_shift", "t_scale"):
+            value = Par.get(name)
+            if torch.is_tensor(value):
+                self.register_buffer(f"_par_{name}", value)
 
         # determine dimensions
         # channels = 2 + self.Par["lb"]
@@ -358,9 +365,15 @@ class Unet3D(nn.Module):
     def forward(self, x, time, x_self_cond = None, use_grid=True):
 
         # print(f'x: {x.shape}')
-        x = (x - self.Par['inp_shift'])/self.Par['inp_scale']
+        inp_shift = getattr(self, "_par_inp_shift", self.Par['inp_shift'])
+        inp_scale = getattr(self, "_par_inp_scale", self.Par['inp_scale'])
+        out_shift = getattr(self, "_par_out_shift", self.Par['out_shift'])
+        out_scale = getattr(self, "_par_out_scale", self.Par['out_scale'])
+        t_shift = getattr(self, "_par_t_shift", self.Par['t_shift'])
+        t_scale = getattr(self, "_par_t_scale", self.Par['t_scale'])
+        x = (x - inp_shift)/inp_scale
         # x = x.reshape(-1, self.Par["lb"]*self.Par["channels"], self.Par["nx"], self.Par["ny"], self.Par["nz"])
-        time = (time - self.Par['t_shift'])/self.Par['t_scale']
+        time = (time - t_shift)/t_scale
 
         # if self.self_condition:
         #     x_self_cond = default(x_self_cond, lambda: torch.zeros_like(x))
@@ -405,7 +418,7 @@ class Unet3D(nn.Module):
         x = self.final_res_block(x, t)
         out = self.final_conv(x)
         out = out.unsqueeze(1)
-        out = out*self.Par['out_scale'] + self.Par['out_shift']
+        out = out*out_scale + out_shift
         out = out.reshape(-1, self.Par["nf"], self.Par["nx"], self.Par["ny"], self.Par["nz"])
         return out
 
