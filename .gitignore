@@ -18,3 +18,6 @@ __pycache__/
 
 # Internal agent planning documents are not part of the public project.
 /docs/superpowers/
+
+# Isolated local development worktrees.
+/.worktrees/
