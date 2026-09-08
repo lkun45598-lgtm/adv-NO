@@ -2,7 +2,7 @@
 
 > 项目状态：已完成 Task A（PRE 海洋表层 `u/v`）和 Task D（ERA5 全球风场 `u/v`）的保守下采样、稀疏掩码训练、纯 NO 预训练、GAN 微调、EMA 推理和多缺失率评价。
 >
-> PRE 最终模型采用“纯 NO 预训练 + RaGAN 微调 + EMA”；ERA5 同时报告标准缺失率训练模型和 `0%--100%` 随机缺失率的极端稀疏实验。标准范围内推荐预训练 + BCE + EMA，99% 缺失率实验使用预训练 + RaGAN + EMA。
+> PRE 最终模型采用“0%--100% 随机缺失率纯 NO 预训练 + RaGAN 微调 + EMA”；ERA5 同时报告标准缺失率训练模型和 `0%--100%` 随机缺失率的极端稀疏实验。
 
 ## 1. 项目概述
 
@@ -267,10 +267,10 @@ generator dim: 16
 
 | 阶段 | 训练缺失率 | 对抗项 | 初始化 | best val normalized L1 | test normalized L1（50% 缺失） | checkpoint |
 | --- | --- | --- | --- | ---: | ---: | --- |
-| 纯 NO 预训练 | 10%--90% | 无 | 随机 | 0.01572383 | 0.01489238 | `outputs/pre_no_pretrain_ema_bs64/best_model.pt` |
-| RaGAN 微调 | 10%--90% | RaGAN，权重 0.1 | NO EMA | **0.01456969** | **0.01421287** | `outputs/pre_ragan_pretrained_ema_bs64/best_model.pt` |
+| 纯 NO 预训练 | 0%--100% | 无 | 随机 | 0.01813946 | 0.01721473 | `outputs/pre_no_pretrain_0to100_ema_bs64/best_model.pt` |
+| RaGAN 微调 | 0%--100% | RaGAN，权重 0.1 | NO EMA | **0.01642772** | **0.01605174** | `outputs/pre_ragan_pretrained_0to100_ema_bs64/best_model.pt` |
 
-RaGAN 微调相对纯 NO 阶段使 best validation L1 降低约 7.34%，50% 缺失率 test L1 降低约 4.56%。PRE 最终汇报和可视化均使用第二阶段的 `generator_ema`。
+RaGAN 微调相对纯 NO 阶段使 best validation L1 降低约 9.44%，test L1 降低约 6.76%。PRE 最终汇报和可视化均使用第二阶段的 `generator_ema`。
 
 ### 7.2 ERA5 标准范围对照
 
@@ -311,18 +311,19 @@ valid_mask AND missing_mask
 
 ### 8.1 PRE 最终模型：预训练 + RaGAN + EMA
 
-下表使用完整 530 条 test 样本、seed 25，所有数值仅统计有效海洋缺失点：
+下表使用完整 530 条 test 样本、seed 25，所有数值仅统计有效海洋缺失点。该最终模型训练时的缺失率覆盖 `0%--100%`，因此 99% 缺失率也属于训练分布覆盖范围：
 
 | 缺失率 | MAE | RMSE | Bias | NRMSE | EPE | Relative L2 | PSNR (dB) | SSIM | Pearson r |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 10% | 0.001664 | 0.003066 | 0.000041 | 0.000927 | 0.002633 | 0.019618 | 60.691 | 0.999696 | 0.999798 |
-| 30% | 0.001874 | 0.003539 | -0.000001 | 0.001078 | 0.002966 | 0.022829 | 59.404 | 0.999569 | 0.999726 |
-| 50% | 0.002349 | 0.004561 | 0.000000 | 0.001397 | 0.003714 | 0.029606 | 57.173 | 0.999273 | 0.999534 |
-| 70% | 0.003326 | 0.006653 | 0.000008 | 0.002051 | 0.005255 | 0.043459 | 53.870 | 0.998450 | 0.998988 |
-| 90% | 0.007275 | 0.013835 | -0.000295 | 0.004268 | 0.011504 | 0.090448 | 47.507 | 0.992506 | 0.995666 |
-| 99% | 0.139003 | 0.173706 | -0.102673 | 0.052700 | 0.211172 | 1.115886 | 25.606 | 0.275693 | 0.657201 |
+| 1% | 0.001696 | 0.003072 | 0.000040 | 0.000926 | 0.002687 | 0.019592 | 60.695 | 0.999720 | 0.999798 |
+| 10% | 0.001785 | 0.003269 | -0.000023 | 0.000991 | 0.002826 | 0.020968 | 60.121 | 0.999661 | 0.999773 |
+| 30% | 0.002135 | 0.003979 | -0.000037 | 0.001217 | 0.003373 | 0.025778 | 58.366 | 0.999442 | 0.999651 |
+| 50% | 0.002685 | 0.005111 | -0.000026 | 0.001574 | 0.004239 | 0.033346 | 56.164 | 0.999055 | 0.999407 |
+| 70% | 0.003694 | 0.007161 | -0.000044 | 0.002214 | 0.005831 | 0.046924 | 53.220 | 0.998099 | 0.998816 |
+| 90% | 0.006484 | 0.012037 | 0.000128 | 0.003730 | 0.010235 | 0.079064 | 48.702 | 0.993863 | 0.996625 |
+| 99% | 0.014234 | 0.023330 | 0.000157 | 0.007242 | 0.022417 | 0.153520 | 42.949 | 0.967172 | 0.987237 |
 
-PRE 在训练覆盖的缺失率范围内性能平稳下降。即使 90% 缺失，Relative L2 仍约为 9.04%，Pearson `r` 约为 0.996，说明最终两阶段模型能够较好保持整体流场结构。但 99% 缺失超出了训练上限，Relative L2 突升至 111.59%，SSIM 降至 0.2757，出现明显分布外失效。此时最近邻基线的 MAE 为 0.02818，显著低于模型的 0.13900，因此 PRE 的 1% 观测结果只能作为失败边界，不应作为正面主结果。
+PRE 在整个训练覆盖范围内性能随缺失率平稳下降。即使 90% 缺失，Relative L2 仍约为 7.91%，Pearson `r` 约为 0.997；99% 缺失时 Relative L2 为 15.35%，SSIM 为 0.9672。99% 工况的模型 MAE（0.01423）仍低于最近邻（0.02818）和高斯插值（0.02596），说明扩展训练缺失率后，PRE 的极端稀疏重建相比旧版 10%--90% 训练模型有明显改善。
 
 ### 8.2 ERA5 风场：随机初始化直接 BCE
 
@@ -425,12 +426,13 @@ SSIM 使用 7 x 7 局部窗口。窗口中心必须有效且属于缺失评价�
 
 | 缺失率 | 图像 |
 | ---: | --- |
+| 1% | [`pre_1pct_visualization.png`](figures/pre_1pct_visualization.png) |
 | 10% | [`pre_10pct_visualization.png`](figures/pre_10pct_visualization.png) |
 | 30% | [`pre_30pct_visualization.png`](figures/pre_30pct_visualization.png) |
 | 50% | [`pre_50pct_visualization.png`](figures/pre_50pct_visualization.png) |
 | 70% | [`pre_70pct_visualization.png`](figures/pre_70pct_visualization.png) |
 | 90% | [`pre_90pct_visualization.png`](figures/pre_90pct_visualization.png) |
-| 99%（1% 观测） | [`pre_1pct_observed_visualization.png`](figures/pre_1pct_observed_visualization.png) |
+| 99%（1% 观测） | [`pre_99pct_visualization.png`](figures/pre_99pct_visualization.png) |
 
 ### ERA5 极端稀疏模型
 
@@ -472,7 +474,7 @@ python -u prepare_sparse_data.py \
 
 训练 runner 会自动使用可见 GPU；指定多张卡时脚本内部使用 `DataParallel`。正式训练按“纯 NO 预训练 -> 从 NO EMA 初始化 GAN 微调”执行，每条长任务均应放在独立 tmux 会话中。
 
-PRE 最终训练命令的核心参数为：
+PRE 最终训练命令的核心参数为（训练缺失率 `0%--100%`）：
 
 ```bash
 # Run from the repository root.
@@ -480,18 +482,18 @@ PRE 最终训练命令的核心参数为：
 # Stage 1: pure NO + EMA
 CUDA_VISIBLE_DEVICES=3,4 python -u 3_flow_reconstruction/no/adv_training/train_sparse_adv_no.py \
   --data data/pre_uv_2t4x_conservative.h5 \
-  --output-dir outputs/pre_no_pretrain_ema_bs64 \
+  --output-dir outputs/pre_no_pretrain_0to100_ema_bs64 \
   --patch 64 --depth 16 --batch-size 64 --epochs 500 \
-  --train-mask-min 0.1 --train-mask-max 0.9 \
+  --cpu-threads 1 --train-mask-min 0.0 --train-mask-max 1.0 \
   --adversarial-weight 0 --ema-decay 0.999
 
 # Stage 2: RaGAN fine-tuning from Stage-1 EMA
 CUDA_VISIBLE_DEVICES=3,4 python -u 3_flow_reconstruction/no/adv_training/train_sparse_adv_no.py \
   --data data/pre_uv_2t4x_conservative.h5 \
-  --output-dir outputs/pre_ragan_pretrained_ema_bs64 \
+  --output-dir outputs/pre_ragan_pretrained_0to100_ema_bs64 \
   --patch 64 --depth 16 --batch-size 64 --epochs 500 \
-  --train-mask-min 0.1 --train-mask-max 0.9 \
-  --init-generator outputs/pre_no_pretrain_ema_bs64/best_model.pt \
+  --cpu-threads 1 --train-mask-min 0.0 --train-mask-max 1.0 \
+  --init-generator outputs/pre_no_pretrain_0to100_ema_bs64/best_model.pt \
   --adversarial-loss ragan --adversarial-weight 0.1 --ema-decay 0.999
 ```
 
@@ -532,21 +534,21 @@ python -u 3_flow_reconstruction/no/adv_training/evaluate_sparse_metrics.py \
   --tile-batch 8 --seed 25 --device cuda:0
 ```
 
-PRE 评价将数据和 checkpoint/config 替换为 `pre_uv_2t4x_conservative.h5` 与 `pre_ragan_pretrained_ema_bs64`，并把 `--depth` 改为 16。评估脚本默认选择 `generator_ema`；只有显式传入 `--raw-generator` 才会改用非 EMA 权重。
+PRE 评价将数据和 checkpoint/config 替换为 `pre_uv_2t4x_conservative.h5` 与 `pre_ragan_pretrained_0to100_ema_bs64`，并把 `--depth` 改为 16。评估脚本默认选择 `generator_ema`；只有显式传入 `--raw-generator` 才会改用非 EMA 权重。
 
 ### 11.4 批量评价注意事项
 
-最终 PRE 和 ERA5 极端稀疏表使用 seed 25，并分别对 `--mask-ratio 0.1 0.3 0.5 0.7 0.9 0.99` 重复运行 11.3 的命令。每次评价都覆盖完整 test split，不能用训练日志中的固定 50% `test_l1` 代替多缺失率物理指标。
+最终 PRE 和 ERA5 极端稀疏表使用 seed 25，并分别对 `--mask-ratio 0.01 0.1 0.3 0.5 0.7 0.9 0.99` 重复运行 11.3 的命令。每次评价都覆盖完整 test split，不能用训练日志中的固定 50% `test_l1` 代替多缺失率物理指标。
 
 ## 12. 结果解释与结论
 
 1. 当前正式结果已经满足“2 倍时间、4 倍空间下采样”和 `8:1:1` 时间切分要求。
 2. 保守面积加权平均比直接点抽取更适合 PRE，能够在海陆边界处排除陆地并保留粗网格平均意义。
-3. PRE 最终采用“纯 NO 预训练 + RaGAN 微调 + EMA”，50% 缺失率 test normalized L1 相对纯 NO 下降约 4.56%。
+3. PRE 最终采用“0%--100% 随机缺失率纯 NO 预训练 + RaGAN 微调 + EMA”，test normalized L1 相对纯 NO 下降约 6.76%。
 4. ERA5 的纯 NO 预训练为后续 GAN 微调提供了更稳定的初始化。标准范围内，预训练 + EMA 的 BCE 模型综合误差最低；预训练后 BCE 与 RaGAN 的差距很小，主要收益来自预训练和 EMA。
 5. 把 ERA5 训练缺失率扩展到 0%--100% 可以覆盖 99% 缺失测试。代价是 10%--70% 缺失时精度下降，收益是 90% 缺失时 MAE 从标准 BCE 的 0.8352 降到 0.8003。标准范围平均表现优先选 10%--90% BCE，极端稀疏优先选 0%--100% RaGAN。
 6. ERA5 在 99% 缺失时仍有 Pearson `r=0.9531`，但 Relative L2 已达到 29.36%，且 MAE/RMSE 略差于最近邻。该结果说明大尺度结构尚可恢复，不代表点值重建已经足够准确。
-7. PRE 的 99% 缺失率超出其 10%--90% 训练范围，性能明显崩溃；这也验证了极端缺失率若是目标工况，就必须像 ERA5 极端实验一样在训练分布中覆盖。
+7. PRE 的 99% 缺失率已被 `0%--100%` 训练分布覆盖，模型仍保持 SSIM 0.9672 和 Pearson `r` 0.9872；这验证了将目标极端缺失率纳入训练分布能够显著提升鲁棒性。
 8. 所有训练损失、评价指标和图像都采用有效区域约束，PRE 陆地不参与模型优化、指标统计或可视化填充。
 
 ## 13. 局限性与后续工作
@@ -557,7 +559,7 @@ PRE 评价将数据和 checkpoint/config 替换为 `pre_uv_2t4x_conservative.h5`
 - ERA5 样本量比 PRE 小，虽然使用了 8 个连续时间片组成窗口，但仍应在后续工作中增加时间范围或采用更严格的跨年份测试。
 - 当前评价的 SSIM 是带有效窗口约束的实现，与直接在整幅含填充值图像上计算的 SSIM 不同；不同项目之间比较时必须统一公式和评价掩码。
 - 当前“预训练 + EMA”与“随机初始化直接训练”的比较同时改变了初始化策略和推理权重，不能把全部增益单独归因于预训练。若要严格分离两者，应增加“随机初始化 + EMA”或对新模型使用 `--raw-generator` 的独立消融。
-- 最终 PRE 和 ERA5 极端稀疏六档结果目前是固定 seed 25；正式论文若需要不确定性，应再补 seed 42、2026，并报告均值与样本标准差。
+- 最终 PRE 多缺失率结果目前是固定 seed 25；正式论文若需要不确定性，应再补 seed 42、2026，并报告均值与样本标准差。
 - 99% 缺失率不在标准考核的明确指标范围内，且模型点值误差未超过最近邻基线，应将其作为压力测试而不是主结果。
 - 当前输出只在缺失位置被评价；若业务场景要求同时检查已观测点的一致性，可额外报告 `all`、`observed` 和 `missing` 三种区域。
 

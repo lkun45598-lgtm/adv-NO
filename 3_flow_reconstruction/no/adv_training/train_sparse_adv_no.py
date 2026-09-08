@@ -378,6 +378,12 @@ def build_arg_parser():
                         help="Generator EMA decay; set to zero to disable EMA")
     parser.add_argument("--dim", type=int, default=16)
     parser.add_argument("--seed", type=int, default=23)
+    parser.add_argument(
+        "--cpu-threads",
+        type=int,
+        default=1,
+        help="PyTorch intra-op CPU threads used for batch collation and host-side work",
+    )
     parser.add_argument("--perceptual-weight", type=float, default=0.0)
     parser.add_argument(
         "--perceptual-weight-path",
@@ -398,11 +404,19 @@ def validate_args(args):
         raise ValueError("--adversarial-weight must be non-negative")
     if args.ema_decay < 0.0 or args.ema_decay >= 1.0:
         raise ValueError("--ema-decay must be in [0, 1)")
+    if args.cpu_threads <= 0:
+        raise ValueError("--cpu-threads must be positive")
     return args
+
+
+def configure_cpu_threads(cpu_threads: int) -> None:
+    torch.set_num_threads(cpu_threads)
 
 
 def main():
     args = validate_args(build_arg_parser().parse_args())
+    configure_cpu_threads(args.cpu_threads)
+    print(f"Using {torch.get_num_threads()} PyTorch CPU thread(s)")
     random.seed(args.seed)
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)

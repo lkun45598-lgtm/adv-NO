@@ -47,22 +47,31 @@ The paper-sized defaults are `dim=16`, `lr=2e-4`, `batch-size=8`, and
 Both tasks first train an L1-only NO and then initialize GAN fine-tuning from
 the best EMA generator.
 
-### PRE final model
+### PRE final model (0%--100% random missing-rate training)
 
 ```bash
-# Stage 1: L1-only NO pretraining.
+# Stage 1: L1-only NO pretraining + EMA.
 python train_sparse_adv_no.py --data ../../../data/pre_uv_2t4x_conservative.h5 \
-  --output-dir ../../../outputs/pre_no_pretrain_ema_bs64 --patch 64 --depth 16 \
-  --batch-size 64 --epochs 500 --train-mask-min 0.1 --train-mask-max 0.9 \
+  --output-dir ../../../outputs/pre_no_pretrain_0to100_ema_bs64 --patch 64 --depth 16 \
+  --batch-size 64 --epochs 500 --cpu-threads 1 \
+  --train-mask-min 0.0 --train-mask-max 1.0 \
   --adversarial-weight 0 --ema-decay 0.999
 
 # Stage 2: RaGAN fine-tuning from the Stage-1 EMA generator.
 python train_sparse_adv_no.py --data ../../../data/pre_uv_2t4x_conservative.h5 \
-  --output-dir ../../../outputs/pre_ragan_pretrained_ema_bs64 --patch 64 --depth 16 \
-  --batch-size 64 --epochs 500 --train-mask-min 0.1 --train-mask-max 0.9 \
-  --init-generator ../../../outputs/pre_no_pretrain_ema_bs64/best_model.pt \
+  --output-dir ../../../outputs/pre_ragan_pretrained_0to100_ema_bs64 --patch 64 --depth 16 \
+  --batch-size 64 --epochs 500 --cpu-threads 1 \
+  --train-mask-min 0.0 --train-mask-max 1.0 \
+  --init-generator ../../../outputs/pre_no_pretrain_0to100_ema_bs64/best_model.pt \
   --adversarial-loss ragan --adversarial-weight 0.1 --ema-decay 0.999
 ```
+
+The completed PRE checkpoints reached best validation/test normalized L1 of
+`0.01642772`/`0.01605174` after RaGAN fine-tuning.  The final multi-rate
+JSON reports and paper-ready figures are published in
+[`docs/results/pre_ragan_pretrained_0to100_ema_bs64/`](../../../docs/results/pre_ragan_pretrained_0to100_ema_bs64)
+and [`docs/figures/`](../../../docs/figures).  The large HDF5 files,
+checkpoints and logs remain local and are intentionally excluded from Git.
 
 ### ERA5 standard-range comparison
 

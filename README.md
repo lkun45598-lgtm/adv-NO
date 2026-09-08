@@ -58,7 +58,7 @@ ERA5: [B, 4, 64, 64,  8] -> [B, 2, 64, 64,  8]
 
 ### 缺失率与损失
 
-- 标准 PRE/ERA5 模型训练时逐样本随机采样 `10%--90%` 缺失率；
+- PRE 最终模型和 ERA5 极端模型训练时逐样本随机采样 `0%--100%` 缺失率；ERA5 标准对照模型使用 `10%--90%`；
 - ERA5 极端稀疏实验训练时采样 `0%--100%` 缺失率；
 - 正式测试固定使用 `10%`、`30%`、`50%`、`70%`、`90%`，并额外测试 `99%`
   缺失率（仅 1% 观测）；
@@ -120,24 +120,24 @@ python -u 3_flow_reconstruction/no/adv_training/prepare_sparse_data.py \
 所有长任务建议放在独立 `tmux` 会话中。下面给出最终模型的核心命令；完整
 参数说明见任务级 README。
 
-### PRE 最终模型
+### PRE 最终模型（0%--100% 随机缺失率）
 
 ```bash
 # Stage 1: pure NO pretraining + EMA
 CUDA_VISIBLE_DEVICES=0,1 python -u 3_flow_reconstruction/no/adv_training/train_sparse_adv_no.py \
   --data data/pre_uv_2t4x_conservative.h5 \
-  --output-dir outputs/pre_no_pretrain_ema_bs64 \
+  --output-dir outputs/pre_no_pretrain_0to100_ema_bs64 \
   --patch 64 --depth 16 --batch-size 64 --epochs 500 \
-  --train-mask-min 0.1 --train-mask-max 0.9 \
+  --cpu-threads 1 --train-mask-min 0.0 --train-mask-max 1.0 \
   --adversarial-weight 0 --ema-decay 0.999
 
 # Stage 2: RaGAN fine-tuning from Stage-1 generator_ema
 CUDA_VISIBLE_DEVICES=0,1 python -u 3_flow_reconstruction/no/adv_training/train_sparse_adv_no.py \
   --data data/pre_uv_2t4x_conservative.h5 \
-  --output-dir outputs/pre_ragan_pretrained_ema_bs64 \
+  --output-dir outputs/pre_ragan_pretrained_0to100_ema_bs64 \
   --patch 64 --depth 16 --batch-size 64 --epochs 500 \
-  --train-mask-min 0.1 --train-mask-max 0.9 \
-  --init-generator outputs/pre_no_pretrain_ema_bs64/best_model.pt \
+  --cpu-threads 1 --train-mask-min 0.0 --train-mask-max 1.0 \
+  --init-generator outputs/pre_no_pretrain_0to100_ema_bs64/best_model.pt \
   --adversarial-loss ragan --adversarial-weight 0.1 --ema-decay 0.999
 ```
 
@@ -219,7 +219,9 @@ python -u 3_flow_reconstruction/no/adv_training/plot_sparse_visualization.py \
 
 评价 PRE 时替换数据、checkpoint 和 config，并在评价脚本中使用
 `--depth 16`；绘图脚本会从 checkpoint 读取深度。PRE 图例标签应改为海洋
-eastward/northward 流速。两个脚本默认读取 `generator_ema`；只有显式使用
+eastward/northward 流速。最终 PRE 的 7 个 JSON 和 PNG 已整理到
+[`docs/results/pre_ragan_pretrained_0to100_ema_bs64/`](docs/results/pre_ragan_pretrained_0to100_ema_bs64)
+和 [`docs/figures/`](docs/figures)。两个脚本默认读取 `generator_ema`；只有显式使用
 `--raw-generator` 才会读取原始生成器。
 
 ## 核心结果
@@ -228,15 +230,17 @@ eastward/northward 流速。两个脚本默认读取 `generator_ema`；只有显
 L2 和 SSIM 为无量纲指标。PRE 表为最终 RaGAN + EMA 模型、完整 test split、
 seed 25；ERA5 标准表为三个随机 seed 的均值 ± 样本标准差。
 
-### PRE 最终模型
+### PRE 最终模型：0%--100% 随机缺失率训练
 
 | 缺失率 | MAE | RMSE | Relative L2 (%) | SSIM |
 | ---: | ---: | ---: | ---: | ---: |
-| 10% | 0.001664 | 0.003066 | 1.962 | 0.999696 |
-| 30% | 0.001874 | 0.003539 | 2.283 | 0.999569 |
-| 50% | 0.002349 | 0.004561 | 2.961 | 0.999273 |
-| 70% | 0.003326 | 0.006653 | 4.346 | 0.998450 |
-| 90% | 0.007275 | 0.013835 | 9.045 | 0.992506 |
+| 1% | 0.001696 | 0.003072 | 1.959 | 0.999720 |
+| 10% | 0.001785 | 0.003269 | 2.097 | 0.999661 |
+| 30% | 0.002135 | 0.003979 | 2.578 | 0.999442 |
+| 50% | 0.002685 | 0.005111 | 3.335 | 0.999055 |
+| 70% | 0.003694 | 0.007161 | 4.692 | 0.998099 |
+| 90% | 0.006484 | 0.012037 | 7.906 | 0.993863 |
+| 99% | 0.014234 | 0.023330 | 15.352 | 0.967172 |
 
 ### ERA5 标准范围：预训练 + BCE + EMA
 
@@ -263,8 +267,8 @@ seed 25；ERA5 标准表为三个随机 seed 的均值 ± 样本标准差。
 训练的 RaGAN + EMA。ERA5 的 99% 缺失结果仍保留了较高的大尺度相关性，
 但点值误差已经明显，不应表述为高精度重建。
 
-PRE 的 99% 缺失率超出了其 10%--90% 训练范围，测试结果为 Relative L2
-`111.59%`、SSIM `0.2757`，且劣于最近邻基线，因此只作为分布外失败边界。
+PRE 的最终 99% 缺失率测试结果为 Relative L2 `15.35%`、SSIM `0.9672`，
+模型 MAE 低于最近邻和高斯插值基线，说明将极端缺失率纳入训练后鲁棒性明显改善。
 
 代表性结果图：
 
