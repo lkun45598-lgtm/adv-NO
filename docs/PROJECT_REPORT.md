@@ -420,7 +420,7 @@ SSIM 使用 7 x 7 局部窗口。窗口中心必须有效且属于缺失评价�
 
 ## 10. 可视化结果
 
-绘图中的陆地区域和无效区域统一显示为空白，不再把模型在没有物理约束的陆地点输出误认为有效重建。每张图包含 reference、稀疏观测、model prediction 和 absolute error 等面板。
+绘图中的陆地区域和无效区域统一显示为空白，不再把模型在没有物理约束的陆地点输出误认为有效重建。每张图包含 reference、稀疏观测、model prediction 和 absolute error 等面板。PRE 图使用固定 `15.6 × 7.2 in`、`300 dpi`（`4680 × 2160 px`）画布；空间轴使用 `xi-grid index`/`eta-grid index`，第五维使用 `Sigma layer`，u/v 误差图共用 `0--0.12 m s^-1` 色标。
 
 ### PRE 最终模型
 

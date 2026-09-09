@@ -39,6 +39,32 @@ def visualization_labels(title: str, u_label: str, v_label: str) -> tuple[str, s
     return title, u_label, v_label
 
 
+def format_slice_caption(slice_index: int, slice_count: int, slice_label: str) -> str:
+    """Format the fifth-axis label without assuming it is time."""
+    if not 0 <= slice_index < slice_count:
+        raise ValueError(f"slice index must be in [0, {slice_count}), got {slice_index}")
+    return f"{slice_label} {slice_index + 1} of {slice_count}"
+
+
+def axis_labels(x_label: str, y_label: str) -> tuple[str, str]:
+    """Return explicit horizontal and vertical grid-axis labels."""
+    return x_label, y_label
+
+
+def resolve_error_limits(error_limits: np.ndarray, error_vmax: float | None) -> np.ndarray:
+    """Return a shared non-negative error scale for all rows and missing rates."""
+    observed_max = float(np.nanmax(np.asarray(error_limits, dtype=np.float64)))
+    if not np.isfinite(observed_max) or observed_max <= 0.0:
+        observed_max = np.finfo(np.float64).eps
+    if error_vmax is None:
+        value = observed_max
+    else:
+        if error_vmax <= 0.0:
+            raise ValueError("error-vmax must be positive")
+        value = float(error_vmax)
+    return np.full(np.asarray(error_limits).shape, value, dtype=np.float64)
+
+
 def mask_invalid_land(values: np.ndarray, valid: np.ndarray) -> np.ndarray:
     """Set non-ocean cells to NaN without modifying the source array."""
     result = np.asarray(values, dtype=np.float32).copy()
@@ -143,6 +169,8 @@ def render(args):
         np.nanmax(np.abs(reconstruction), axis=(1, 2)),
     )
     error_limits = np.nanmax(absolute_error, axis=(1, 2))
+    error_scales = resolve_error_limits(error_limits, args.error_vmax)
+    x_label, y_label = axis_labels(args.x_label, args.y_label)
     title, u_label, v_label = visualization_labels(args.title, args.u_label, args.v_label)
     plt.rcParams.update({
         "font.family": "DejaVu Sans",
@@ -152,7 +180,7 @@ def render(args):
         "ytick.labelsize": 8,
     })
     figure, axes = plt.subplots(2, 4, figsize=(15.6, 7.2), constrained_layout=False)
-    figure.subplots_adjust(left=0.055, right=0.965, bottom=0.105, top=0.825,
+    figure.subplots_adjust(left=0.085, right=0.965, bottom=0.105, top=0.825,
                           wspace=0.30, hspace=0.34)
 
     for row, component in enumerate(("u", "v")):
@@ -166,26 +194,26 @@ def render(args):
             colorbar.set_label(f"{component} (m s$^{{-1}}$)", fontsize=8, rotation=270,
                                labelpad=11)
             axis.set_title(titles[col], pad=6)
-            axis.set_xlabel("Longitude index")
-            axis.set_ylabel("Latitude index")
+            axis.set_xlabel(x_label)
+            axis.set_ylabel(y_label)
             axis.tick_params(length=2)
 
         axis = axes[row, 3]
         image = axis.imshow(absolute_error[row], cmap=ERROR_CMAP, vmin=0,
-                            vmax=float(error_limits[row]), interpolation="nearest",
+                            vmax=float(error_scales[row]), interpolation="nearest",
                             origin="lower", aspect="equal")
         colorbar = figure.colorbar(image, ax=axis, fraction=0.046, pad=0.025)
         colorbar.ax.tick_params(labelsize=7)
         colorbar.set_label(f"|{component} error| (m s$^{{-1}}$)", fontsize=8,
                            rotation=270, labelpad=11)
         axis.set_title(titles[3], pad=6)
-        axis.set_xlabel("Longitude index")
-        axis.set_ylabel("Latitude index")
+        axis.set_xlabel(x_label)
+        axis.set_ylabel(y_label)
         axis.tick_params(length=2)
 
-    figure.text(0.012, 0.635, u_label, rotation=90,
+    figure.text(0.035, 0.635, u_label, rotation=90,
                 ha="center", va="center", fontsize=10, fontweight="bold", color="#1F2937")
-    figure.text(0.012, 0.340, v_label, rotation=90,
+    figure.text(0.035, 0.340, v_label, rotation=90,
                 ha="center", va="center", fontsize=10, fontweight="bold", color="#1F2937")
 
     figure.suptitle(
@@ -195,7 +223,7 @@ def render(args):
     figure.text(
         0.5, 0.925,
         f"Held-out test sample {args.sample} | central {target.shape[1]} x {target.shape[2]} tile "
-        f"| time step {args.time_index + 1} of {target.shape[3]} "
+        f"| {format_slice_caption(args.time_index, target.shape[3], args.slice_label)} "
         f"| missing rate: {args.mask_ratio:.0%} "
         f"| observed fraction: {1.0 - args.mask_ratio:.0%}",
         ha="center", va="center", fontsize=10, color="#334155",
@@ -205,7 +233,8 @@ def render(args):
                 "error maps show absolute differences.",
                 ha="center", va="center", fontsize=8, color="#475569")
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    figure.savefig(args.output, dpi=300, bbox_inches="tight", facecolor="white")
+    # Keep the physical canvas fixed across missing rates for stable paper/PPT layout.
+    figure.savefig(args.output, dpi=300, facecolor="white")
     plt.close(figure)
 
 
@@ -222,6 +251,11 @@ def build_arg_parser():
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--raw-generator", action="store_true",
                         help="Use raw generator weights instead of EMA weights when present")
+    parser.add_argument("--x-label", default="Longitude index")
+    parser.add_argument("--y-label", default="Latitude index")
+    parser.add_argument("--slice-label", default="Time step")
+    parser.add_argument("--error-vmax", type=float,
+                        help="Fixed absolute-error colorbar upper limit in physical units")
     parser.add_argument(
         "--title",
         default="ERA5 Horizontal Wind-Field Reconstruction from Sparse Observations",

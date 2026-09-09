@@ -224,6 +224,11 @@ eastward/northward 流速。最终 PRE 的 7 个 JSON 和 PNG 已整理到
 和 [`docs/figures/`](docs/figures)。两个脚本默认读取 `generator_ema`；只有显式使用
 `--raw-generator` 才会读取原始生成器。
 
+PRE 正式图片使用固定出版参数：`15.6 × 7.2 in`、`300 dpi`（输出
+`4680 × 2160 px`），横纵轴分别标为 `xi-grid index` 和 `eta-grid index`，
+第五维标为 `Sigma layer`；所有缺失率图片的绝对误差 colorbar 统一为
+`0--0.12 m s^-1`，便于跨缺失率比较。
+
 ## 核心结果
 
 所有结果只在有效缺失位置计算。MAE 和 RMSE 的单位为 `m s^-1`，Relative

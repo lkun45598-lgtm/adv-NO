@@ -11,6 +11,11 @@
 
 每个 JSON 同时保存 `model`、最近邻 `nearest` 和高斯插值 `gaussian` 三种方法，包含 MAE、RMSE、Bias、Relative L2、NRMSE、PSNR、SSIM、Pearson `r` 和 EPE。报告中的主结果使用 `methods.model.missing.macro`。
 
+配套图片统一使用 `15.6 × 7.2 in`、`300 dpi`（`4680 × 2160 px`）画布。PRE
+第五维是垂向 sigma 层，图中标为 `Sigma layer`；空间轴标为 `xi-grid index`
+和 `eta-grid index`。参考场、稀疏观测和重建共用场值色标，u/v 的绝对误差
+图共用固定 `0--0.12 m s^-1` 色标。
+
 | 缺失率 | MAE | RMSE | PSNR (dB) | SSIM | Pearson r |
 | ---: | ---: | ---: | ---: | ---: | ---: |
 | 1% | 0.001696 | 0.003072 | 60.695 | 0.999720 | 0.999798 |
