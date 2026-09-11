@@ -53,6 +53,13 @@ def axis_labels(x_label: str, y_label: str) -> tuple[str, str]:
     return x_label, y_label
 
 
+def format_row_label(label: str) -> str:
+    """Wrap long wind-component labels without abbreviating their meaning."""
+    if len(label) > 22 and " Wind Velocity " in label:
+        return label.replace(" Wind Velocity ", " Wind\nVelocity ", 1)
+    return label
+
+
 def axis_visibility(row: int, col: int, row_count: int = 2) -> tuple[bool, bool]:
     """Return whether an axis should display x and y coordinates."""
     return row == row_count - 1, col == 0
@@ -93,6 +100,13 @@ def resolve_error_limits(error_limits: np.ndarray, error_vmax: float | None) -> 
             raise ValueError("error-vmax must be positive")
         value = float(error_vmax)
     return np.full(np.asarray(error_limits).shape, value, dtype=np.float64)
+
+
+def error_scale_caption(error_vmax: float | None) -> str:
+    """Describe whether absolute-error limits support cross-rate comparison."""
+    if error_vmax is None:
+        return "absolute-error panels use a per-figure scale."
+    return "absolute-error panels use a fixed cross-rate scale."
 
 
 def ground_truth_field_limits(truth: np.ndarray) -> np.ndarray:
@@ -194,7 +208,9 @@ def predict_sample(
         dim_mults=(1, 2, 4, 8),
         channels=4,
     ).to(device)
-    generator_state, _ = select_generator_state(checkpoint, prefer_ema=not raw_generator)
+    generator_state, generator_source = select_generator_state(
+        checkpoint, prefer_ema=not raw_generator
+    )
     model.load_state_dict(generator_state)
     model.eval()
 
@@ -356,7 +372,7 @@ def render(args):
         figure.text(
             0.022,
             (bounds.y0 + bounds.y1) / 2,
-            row_label,
+            format_row_label(row_label),
             rotation=90,
             ha="center",
             va="center",
@@ -388,7 +404,7 @@ def render(args):
         0.5,
         0.035,
         "Ground truth, observations, and reconstruction share each row's velocity scale; "
-        "absolute-error panels use a fixed cross-rate scale.",
+        f"{error_scale_caption(args.error_vmax)}",
         ha="center",
         va="center",
         fontsize=9,
@@ -431,8 +447,8 @@ def build_arg_parser():
         "--title",
         default="ERA5 Horizontal Wind-Field Reconstruction from Sparse Observations",
     )
-    parser.add_argument("--u-label", default="Zonal wind component (u)")
-    parser.add_argument("--v-label", default="Meridional wind component (v)")
+    parser.add_argument("--u-label", default="Zonal Wind Velocity (u)")
+    parser.add_argument("--v-label", default="Meridional Wind Velocity (v)")
     return parser
 
 

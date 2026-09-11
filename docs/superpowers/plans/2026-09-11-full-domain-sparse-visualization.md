@@ -108,17 +108,17 @@ Expected: all tests pass.
 - Modify: `docs/figures/pre_90pct_visualization.png`
 - Modify: `docs/figures/pre_99pct_visualization.png`
 
-- [ ] **Step 1: Run GPU rendering for all PRE rates**
+- [x] **Step 1: Run GPU rendering for all PRE rates**
 
 Use the final `pre_ragan_pretrained_0to100_ema_bs64` EMA checkpoint, sample 0,
 sigma layer 15 of 30, and rates `0.01 0.10 0.30 0.50 0.70 0.90 0.99`.
 
-- [ ] **Step 2: Verify output dimensions and visible domain**
+- [x] **Step 2: Verify output dimensions and visible domain**
 
 Use Pillow to assert all seven files have identical dimensions. Check the
 subtitle states `full 100 x 110 domain` and `Sigma layer 15 of 30`.
 
-- [ ] **Step 3: Inspect 1%, 50%, and 99% images**
+- [x] **Step 3: Inspect 1%, 50%, and 99% images**
 
 Check title/axis/colorbar clipping, PRE land masking, sparse observations,
 panel order, and error visibility.
@@ -133,7 +133,7 @@ panel order, and error visibility.
 - Modify: `docs/figures/era5_90pct_visualization.png`
 - Modify: `docs/figures/era5_99pct_visualization.png`
 
-- [ ] **Step 1: Use one checkpoint for the degradation series**
+- [x] **Step 1: Use one checkpoint for the degradation series**
 
 Use `era_ragan_pretrained_0to100_ema_bs32` for every 10%--99% figure so the
 series shows one model's degradation curve and remains consistent with the
@@ -141,12 +141,12 @@ project report's "ERA5 extreme-sparsity model" visualization section. Do not
 mix the standard BCE checkpoint and extreme-sparsity checkpoint under one set
 of filenames.
 
-- [ ] **Step 2: Run GPU rendering**
+- [x] **Step 2: Run GPU rendering**
 
 Render sample 0, time step 5 of 8, over the full `180 x 360` domain. Preserve
 the global `2:1` field aspect ratio.
 
-- [ ] **Step 3: Verify dimensions and visual quality**
+- [x] **Step 3: Verify dimensions and visual quality**
 
 Assert all ERA5 files share one pixel size and inspect 10%, 50%, and 99% for
 layout, readable font size, color scales, and complete-domain coverage.
@@ -159,13 +159,13 @@ layout, readable font size, color scales, and complete-domain coverage.
 - Modify: `docs/results/pre_ragan_pretrained_0to100_ema_bs64/README.md`
 - Modify: `3_flow_reconstruction/no/adv_training/README_sparse_tasks.md`
 
-- [ ] **Step 1: Update documentation**
+- [x] **Step 1: Update documentation**
 
 Replace references to center `64 x 64` figures with PRE `100 x 110` and ERA5
 `180 x 360` full-domain figures. Document the four column titles, sparse axis
 labels, selected layer/time step, colorbar policy, and checkpoint provenance.
 
-- [ ] **Step 2: Run automated verification**
+- [x] **Step 2: Run automated verification**
 
 Run:
 
@@ -176,7 +176,7 @@ python -m pytest -q tests
 
 Expected: no whitespace errors and all tests pass.
 
-- [ ] **Step 3: Verify generated assets**
+- [x] **Step 3: Verify generated assets**
 
 Use Pillow/file inspection to verify all expected PNG files are nonempty and
 have consistent per-dataset dimensions. Confirm no HDF5, checkpoint, or log is
