@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from matplotlib.gridspec import GridSpec
+from matplotlib.ticker import FuncFormatter
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))
@@ -51,6 +52,216 @@ def format_slice_caption(slice_index: int, slice_count: int, slice_label: str) -
 def axis_labels(x_label: str, y_label: str) -> tuple[str, str]:
     """Return explicit horizontal and vertical grid-axis labels."""
     return x_label, y_label
+
+
+def _read_metadata(data_path: Path) -> dict:
+    """Read the preprocessing metadata stored in an output HDF5 file."""
+    with h5py.File(data_path, "r") as h5:
+        raw = h5.attrs.get("metadata_json")
+    if raw is None:
+        raise KeyError(f"{data_path} does not contain metadata_json")
+    if isinstance(raw, bytes):
+        raw = raw.decode("utf-8")
+    return json.loads(raw)
+
+
+def _coarse_curvilinear_centers(
+    longitude: np.ndarray,
+    latitude: np.ndarray,
+    weights: np.ndarray,
+    wet: np.ndarray,
+    scale: int,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Aggregate PRE's RHO-point coordinates onto the processed coarse grid."""
+    if longitude.shape != latitude.shape or longitude.shape != weights.shape:
+        raise ValueError("PRE coordinate and weight arrays must have identical shapes")
+    if wet.shape != longitude.shape:
+        raise ValueError("PRE wet mask must match coordinate arrays")
+    height, width = longitude.shape
+    if height % scale or width % scale:
+        raise ValueError(f"PRE coordinate shape {(height, width)} is not divisible by {scale}")
+    low_height, low_width = height // scale, width // scale
+    block_shape = (low_height, scale, low_width, scale)
+    block_weights = np.asarray(weights, dtype=np.float64).reshape(block_shape)
+    block_wet = np.asarray(wet, dtype=bool).reshape(block_shape)
+    effective_weights = np.where(block_wet, block_weights, 0.0)
+    denominator = effective_weights.sum(axis=(1, 3))
+    fallback_denominator = block_weights.sum(axis=(1, 3))
+
+    def reduce_coordinate(values: np.ndarray) -> np.ndarray:
+        block_values = np.asarray(values, dtype=np.float64).reshape(block_shape)
+        numerator = (block_values * effective_weights).sum(axis=(1, 3))
+        fallback = (block_values * block_weights).sum(axis=(1, 3))
+        return np.divide(
+            numerator,
+            denominator,
+            out=np.divide(
+                fallback,
+                fallback_denominator,
+                out=np.full((low_height, low_width), np.nan, dtype=np.float64),
+                where=fallback_denominator > 0,
+            ),
+            where=denominator > 0,
+        )
+
+    return reduce_coordinate(longitude), reduce_coordinate(latitude)
+
+
+def load_spatial_grid(
+    data_path: Path,
+    expected_shape: tuple[int, int],
+    pre_coordinate_dir: Path | None = None,
+) -> tuple[np.ndarray, np.ndarray, str]:
+    """Load physical coordinates matching a processed PRE or ERA5 sample.
+
+    ERA5 returns one-dimensional cell edges for ``pcolormesh(shading='flat')``.
+    PRE returns two-dimensional coarse cell centers for its curvilinear RHO grid.
+    """
+    metadata = _read_metadata(data_path)
+    task = metadata.get("task")
+    height, width = expected_shape
+    if task == "D":
+        if (height, width) != (180, 360):
+            raise ValueError(f"ERA5 geographic grid expects (180, 360), got {expected_shape}")
+        # The source has 0.25-degree centers, drops the final -90-degree row,
+        # and averages 4x4 blocks.  The resulting cell edges are exactly 1 degree.
+        longitude_edges = np.arange(width + 1, dtype=np.float64)
+        latitude_edges = 90.0 - np.arange(height + 1, dtype=np.float64)
+        return longitude_edges, latitude_edges, "flat"
+    if task != "A":
+        raise ValueError(f"Unsupported task in metadata: {task!r}")
+
+    source = Path(pre_coordinate_dir) if pre_coordinate_dir else Path(metadata["source"])
+    coordinate_dir = source / "processed/stat_var" if source.name != "stat_var" else source
+    longitude_path = coordinate_dir / "lon_rho.npy"
+    latitude_path = coordinate_dir / "lat_rho.npy"
+    pm_path = coordinate_dir / "pm.npy"
+    pn_path = coordinate_dir / "pn.npy"
+    mask_path = coordinate_dir / "mask_rho.npy"
+    missing = [str(path) for path in (longitude_path, latitude_path, pm_path, pn_path, mask_path)
+               if not path.exists()]
+    if missing:
+        raise FileNotFoundError(
+            "PRE geographic coordinates require source static files; missing: "
+            + ", ".join(missing)
+        )
+    longitude = np.asarray(np.load(longitude_path), dtype=np.float64)
+    latitude = np.asarray(np.load(latitude_path), dtype=np.float64)
+    pm = np.asarray(np.load(pm_path), dtype=np.float64)
+    pn = np.asarray(np.load(pn_path), dtype=np.float64)
+    wet = np.asarray(np.load(mask_path), dtype=np.float64) > 0
+    source_height, source_width = map(int, metadata["source_spatial_crop"])
+    longitude = longitude[:source_height, :source_width]
+    latitude = latitude[:source_height, :source_width]
+    pm = pm[:source_height, :source_width]
+    pn = pn[:source_height, :source_width]
+    wet = wet[:source_height, :source_width]
+    if (source_height, source_width) != (height * 4, width * 4):
+        raise ValueError(
+            "PRE coordinate crop does not match processed shape: "
+            f"source {(source_height, source_width)}, processed {expected_shape}"
+        )
+    weights = 1.0 / (pm * pn)
+    coarse_longitude, coarse_latitude = _coarse_curvilinear_centers(
+        longitude, latitude, weights, wet, scale=4
+    )
+    return coarse_longitude, coarse_latitude, "nearest"
+
+
+def plot_spatial_field(
+    axis,
+    longitude: np.ndarray,
+    latitude: np.ndarray,
+    values: np.ndarray,
+    *,
+    shading: str,
+    cmap: str,
+    vmin: float,
+    vmax: float,
+):
+    """Plot one field with geographic coordinates instead of array indices."""
+    return axis.pcolormesh(
+        longitude,
+        latitude,
+        values,
+        shading=shading,
+        cmap=cmap,
+        vmin=vmin,
+        vmax=vmax,
+        rasterized=True,
+    )
+
+
+def add_column_titles(figure, axes: np.ndarray, titles: tuple[str, ...]):
+    """Place column titles in figure space above axes, avoiding image overlap."""
+    if len(titles) != axes.shape[1]:
+        raise ValueError(f"Expected {axes.shape[1]} column titles, got {len(titles)}")
+    figure.canvas.draw()
+    artists = []
+    for axis, title in zip(axes[0], titles):
+        position = axis.get_position()
+        artists.append(
+            figure.text(
+                (position.x0 + position.x1) / 2,
+                position.y1 + 0.012,
+                title,
+                ha="center",
+                va="bottom",
+                fontsize=14,
+                fontweight="bold",
+                color="#111827",
+            )
+        )
+    return artists
+
+
+def geographic_extent_caption(longitude: np.ndarray, latitude: np.ndarray) -> str:
+    """Format the plotted longitude/latitude range for the figure subtitle."""
+    longitude = np.asarray(longitude, dtype=np.float64)
+    latitude = np.asarray(latitude, dtype=np.float64)
+    lon_min, lon_max = float(np.nanmin(longitude)), float(np.nanmax(longitude))
+    lat_min, lat_max = float(np.nanmin(latitude)), float(np.nanmax(latitude))
+
+    def directional_range(low: float, high: float, negative: str, positive: str) -> str:
+        if low >= 0:
+            return f"{low:.2f}–{high:.2f}°{positive}"
+        if high <= 0:
+            return f"{abs(high):.2f}–{abs(low):.2f}°{negative}"
+        return f"{abs(low):.0f}°{negative}–{high:.0f}°{positive}"
+
+    longitude_range = directional_range(lon_min, lon_max, "W", "E")
+    latitude_range = directional_range(lat_min, lat_max, "S", "N")
+    if np.allclose([lon_min, lon_max], [0.0, 360.0]):
+        longitude_range = "0°E–360°E"
+    return f"Longitude {longitude_range} | Latitude {latitude_range}"
+
+
+def _format_degree(value: float) -> str:
+    precision = 0 if np.isclose(value, round(value)) else 1
+    return f"{value:.{precision}f}°"
+
+
+def format_longitude_tick(value: float, _position) -> str:
+    """Format a longitude tick with an unambiguous east/west suffix."""
+    if np.isclose(value, 0.0):
+        return "0°"
+    return _format_degree(abs(value)) + ("E" if value > 0 else "W")
+
+
+def format_latitude_tick(value: float, _position) -> str:
+    """Format a latitude tick with an unambiguous north/south suffix."""
+    if np.isclose(value, 0.0):
+        return "0°"
+    return _format_degree(abs(value)) + ("N" if value > 0 else "S")
+
+
+def apply_geographic_tick_formatters(axes: np.ndarray) -> None:
+    """Apply cardinal-direction degree labels to visible geographic axes."""
+    longitude_formatter = FuncFormatter(format_longitude_tick)
+    latitude_formatter = FuncFormatter(format_latitude_tick)
+    for axis in axes.flat:
+        axis.xaxis.set_major_formatter(longitude_formatter)
+        axis.yaxis.set_major_formatter(latitude_formatter)
 
 
 def format_row_label(label: str) -> str:
@@ -279,9 +490,20 @@ def render(args):
     field_limits = ground_truth_field_limits(truth)
     error_limits = np.nanmax(absolute_error, axis=(1, 2))
     error_scales = resolve_error_limits(error_limits, args.error_vmax)
-    x_label, y_label = axis_labels(args.x_label, args.y_label)
     title, u_label, v_label = visualization_labels(args.title, args.u_label, args.v_label)
     _, height, width, full_depth = target.shape
+    longitude, latitude, shading = load_spatial_grid(
+        args.data,
+        expected_shape=(height, width),
+        pre_coordinate_dir=args.coordinate_dir,
+    )
+    default_x_label = "Longitude"
+    default_y_label = "Latitude"
+    x_label, y_label = axis_labels(
+        args.x_label or default_x_label,
+        args.y_label or default_y_label,
+    )
+    extent_caption = geographic_extent_caption(longitude, latitude)
     domain_aspect = width / height
     figure_width = args.figure_width or 18.0
     figure_height = args.figure_height or (6.8 if domain_aspect >= 1.5 else 8.8)
@@ -326,17 +548,16 @@ def render(args):
         field_image = None
         for col, values in enumerate(field_images):
             axis = axes[row, col]
-            field_image = axis.imshow(
+            field_image = plot_spatial_field(
+                axis,
+                longitude,
+                latitude,
                 values,
                 cmap=FIELD_CMAP,
                 vmin=-field_limits[row],
                 vmax=field_limits[row],
-                interpolation="nearest",
-                origin="lower",
-                aspect="equal",
+                shading=shading,
             )
-            if row == 0:
-                axis.set_title(titles[col], pad=10, fontsize=14, fontweight="bold")
 
         field_colorbar = figure.colorbar(field_image, cax=field_color_axes[row])
         field_colorbar.ax.tick_params(labelsize=10, length=3)
@@ -345,17 +566,16 @@ def render(args):
         )
 
         axis = axes[row, 3]
-        error_image = axis.imshow(
+        error_image = plot_spatial_field(
+            axis,
+            longitude,
+            latitude,
             absolute_error[row],
             cmap=ERROR_CMAP,
             vmin=0,
             vmax=float(error_scales[row]),
-            interpolation="nearest",
-            origin="lower",
-            aspect="equal",
+            shading=shading,
         )
-        if row == 0:
-            axis.set_title(titles[3], pad=10, fontsize=14, fontweight="bold")
         error_colorbar = figure.colorbar(error_image, cax=error_color_axes[row])
         error_colorbar.ax.tick_params(labelsize=10, length=3)
         error_colorbar.set_label(
@@ -366,6 +586,10 @@ def render(args):
         )
 
     apply_axis_visibility(axes, x_label, y_label)
+    apply_geographic_tick_formatters(axes)
+    for axis in axes.flat:
+        axis.set_aspect("auto")
+    add_column_titles(figure, axes, titles)
     figure.canvas.draw()
     for row, row_label in enumerate((u_label, v_label)):
         bounds = axes[row, 0].get_position()
@@ -391,6 +615,7 @@ def render(args):
         0.5,
         0.915,
         f"Held-out test sample {args.sample} | full {height} x {width} domain "
+        f"| {extent_caption} "
         f"| {format_slice_caption(slice_index, full_depth, args.slice_label)} "
         f"| Missing rate: {args.mask_ratio:.0%} "
         f"| Observed fraction: {1.0 - args.mask_ratio:.0%} "
@@ -430,8 +655,12 @@ def build_arg_parser():
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--raw-generator", action="store_true",
                         help="Use raw generator weights instead of EMA weights when present")
-    parser.add_argument("--x-label", default="Longitude index")
-    parser.add_argument("--y-label", default="Latitude index")
+    parser.add_argument("--x-label", default=None,
+                        help="Override the physical horizontal coordinate label")
+    parser.add_argument("--y-label", default=None,
+                        help="Override the physical vertical coordinate label")
+    parser.add_argument("--coordinate-dir", type=Path, default=None,
+                        help="PRE processed/stat_var directory containing lon/lat arrays")
     parser.add_argument("--slice-label", default="Time step")
     parser.add_argument("--error-vmax", type=float,
                         help="Fixed absolute-error colorbar upper limit in physical units")

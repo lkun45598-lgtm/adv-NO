@@ -231,10 +231,12 @@ python -u 3_flow_reconstruction/no/adv_training/plot_sparse_visualization.py \
 正式图片展示下采样后的完整域，而不是中心 `64 × 64` patch：PRE 为
 `100 × 110`、ERA5 为 `180 × 360`。每张图依次显示 `Ground Truth`、
 `Sparse Observations`、`adv-NO Reconstruction` 和 `Absolute Error`。PRE
-图片为 `5400 × 2640 px`，坐标使用 `xi-grid index`/`eta-grid index`，第五维
-标为 `Sigma layer`，误差色标固定为 `0--0.12 m s^-1`；ERA5 图片为
-`5400 × 2040 px`，保持全球场 `2:1` 比例，误差色标固定为
-`0--10 m s^-1`。所有图片均为 `300 dpi`。
+图片为 `5400 × 2640 px`，使用源 RHO 曲线网格聚合后的真实经纬度
+（约 `112.32--115.67°E`、`20.90--23.12°N`），第五维标为 `Sigma layer`；
+ERA5 图片为 `5400 × 2040 px`，使用真实全球经纬度 `0--360°E`、
+`90°N--90°S`，保持全球场 `2:1` 比例。两类图的列标题均位于图像轴外的
+独立留白区域，误差色标分别固定为 `0--0.12 m s^-1` 和 `0--10 m s^-1`。
+所有图片均为 `300 dpi`。
 
 ## 核心结果
 

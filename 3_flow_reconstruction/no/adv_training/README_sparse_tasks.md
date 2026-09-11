@@ -157,10 +157,14 @@ reconstruct the full processed domain. The paper-ready figures show PRE at
 `100 x 110` on sigma layer 15 of 30 and ERA5 at `180 x 360` on time step 5 of
 8. PRE land remains blank. The four columns are `Ground Truth`, `Sparse
 Observations`, `adv-NO Reconstruction`, and `Absolute Error`; field scales are
-shared by the first three columns within each row. PRE and ERA5 use fixed
-cross-rate absolute-error limits of `0.12 m s^-1` and `10 m s^-1`,
-respectively. ERA5's visualization series uses only the extreme-sparsity
-`era_ragan_pretrained_0to100_ema_bs32` EMA checkpoint.
+shared by the first three columns within each row. PRE uses the source RHO
+curvilinear longitude/latitude grid aggregated with the same 4x4 conservative
+weights as the field, while ERA5 uses the regular global `0--360°E` and
+`90°N--90°S` grid with the source descending-latitude orientation preserved.
+Column titles are placed in a dedicated margin above the image axes. PRE and
+ERA5 use fixed cross-rate absolute-error limits of `0.12 m s^-1` and
+`10 m s^-1`, respectively. ERA5's visualization series uses only the
+extreme-sparsity `era_ragan_pretrained_0to100_ema_bs32` EMA checkpoint.
 
 ## ERA5 result summary
 

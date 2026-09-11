@@ -14,7 +14,8 @@
 配套图片展示完整 `100 × 110` 下采样域，而不是训练时的中心 `64 × 64`
 patch；统一使用 `18 × 8.8 in`、`300 dpi`（`5400 × 2640 px`）画布。PRE
 第五维是垂向 sigma 层，图中展示第 15/30 层并标为 `Sigma layer`；空间轴标为
-`xi-grid index` 和 `eta-grid index`。四列依次为 `Ground Truth`、
+源 RHO 曲线网格经 `4×4` 聚合后的真实经纬度（约
+`112.32--115.67°E`、`20.90--23.12°N`）。四列依次为 `Ground Truth`、
 `Sparse Observations`、`adv-NO Reconstruction` 和 `Absolute Error`。前三列
 在每个分量内共享场值色标，u/v 绝对误差固定使用 `0--0.12 m s^-1` 色标。
 

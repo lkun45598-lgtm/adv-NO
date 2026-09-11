@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 import torch
+from matplotlib.collections import QuadMesh
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -28,6 +29,107 @@ def test_pre_layout_labels_and_slice_caption():
         "xi-grid index",
         "eta-grid index",
     )
+
+
+def test_era5_spatial_grid_uses_global_degree_edges(tmp_path):
+    module = load_plot_module()
+    data_path = tmp_path / "era5.h5"
+    metadata = {
+        "task": "D",
+        "spatial_scale": 4,
+        "source_spatial_crop": [720, 1440],
+        "processed_shape": [219, 2, 180, 360, 8],
+    }
+    with h5py.File(data_path, "w") as h5:
+        h5.attrs["metadata_json"] = __import__("json").dumps(metadata)
+
+    longitude, latitude, shading = module.load_spatial_grid(
+        data_path, expected_shape=(180, 360)
+    )
+
+    assert longitude.shape == (361,)
+    assert latitude.shape == (181,)
+    assert shading == "flat"
+    np.testing.assert_allclose(longitude[[0, -1]], [0.0, 360.0])
+    np.testing.assert_allclose(latitude[[0, -1]], [90.0, -90.0])
+    assert np.all(np.diff(longitude) > 0)
+    assert np.all(np.diff(latitude) < 0)
+
+
+def test_pre_spatial_grid_downsamples_curvilinear_coordinates(tmp_path):
+    module = load_plot_module()
+    coordinate_dir = tmp_path / "stat_var"
+    coordinate_dir.mkdir()
+    source_shape = (8, 12)
+    longitude = 112.0 + np.arange(12)[None, :] + 0.1 * np.arange(8)[:, None]
+    latitude = 20.0 + np.arange(8)[:, None] + 0.01 * np.arange(12)[None, :]
+    np.save(coordinate_dir / "lon_rho.npy", longitude)
+    np.save(coordinate_dir / "lat_rho.npy", latitude)
+    np.save(coordinate_dir / "pm.npy", np.ones(source_shape))
+    np.save(coordinate_dir / "pn.npy", np.ones(source_shape))
+    np.save(coordinate_dir / "mask_rho.npy", np.ones(source_shape))
+
+    data_path = tmp_path / "pre.h5"
+    metadata = {
+        "task": "A",
+        "source": str(tmp_path / "unused_source"),
+        "spatial_scale": 4,
+        "source_spatial_crop": list(source_shape),
+        "processed_shape": [1, 2, 2, 3, 1],
+    }
+    with h5py.File(data_path, "w") as h5:
+        h5.attrs["metadata_json"] = __import__("json").dumps(metadata)
+
+    coarse_lon, coarse_lat, shading = module.load_spatial_grid(
+        data_path,
+        expected_shape=(2, 3),
+        pre_coordinate_dir=coordinate_dir,
+    )
+
+    assert coarse_lon.shape == (2, 3)
+    assert coarse_lat.shape == (2, 3)
+    assert shading == "nearest"
+    np.testing.assert_allclose(coarse_lon[0, 0], longitude[:4, :4].mean())
+    np.testing.assert_allclose(coarse_lat[-1, -1], latitude[4:8, 8:12].mean())
+
+
+def test_geographic_field_is_drawn_as_coordinate_aware_quadmesh():
+    module = load_plot_module()
+    figure, axis = plt.subplots()
+    try:
+        image = module.plot_spatial_field(
+            axis,
+            longitude=np.linspace(0.0, 360.0, 5),
+            latitude=np.linspace(90.0, -90.0, 3),
+            values=np.arange(8, dtype=float).reshape(2, 4),
+            shading="flat",
+            cmap="viridis",
+            vmin=0.0,
+            vmax=7.0,
+        )
+        assert isinstance(image, QuadMesh)
+        np.testing.assert_allclose(axis.get_xlim(), (0.0, 360.0))
+        np.testing.assert_allclose(axis.get_ylim(), (-90.0, 90.0))
+    finally:
+        plt.close(figure)
+
+
+def test_column_titles_are_above_and_do_not_intersect_image_axes():
+    module = load_plot_module()
+    figure, axes = plt.subplots(2, 4, figsize=(18, 7))
+    try:
+        title_artists = module.add_column_titles(
+            figure,
+            axes,
+            ("Ground Truth", "Sparse Observations", "adv-NO Reconstruction", "Absolute Error"),
+        )
+        figure.canvas.draw()
+        renderer = figure.canvas.get_renderer()
+        for title_artist, axis in zip(title_artists, axes[0]):
+            title_box = title_artist.get_window_extent(renderer=renderer)
+            assert title_box.y0 > axis.get_window_extent(renderer=renderer).y1
+    finally:
+        plt.close(figure)
 
 
 def test_read_full_sample_preserves_complete_domain(tmp_path):
@@ -226,3 +328,37 @@ def test_parser_uses_publication_era5_row_labels():
     )
     assert args.u_label == "Zonal Wind Velocity (u)"
     assert args.v_label == "Meridional Wind Velocity (v)"
+
+
+def test_parser_defaults_to_physical_coordinate_labels():
+    module = load_plot_module()
+    args = module.build_arg_parser().parse_args(
+        [
+            "--data", "input.h5",
+            "--checkpoint", "checkpoint.pt",
+            "--config", "config.json",
+            "--output", "output.png",
+        ]
+    )
+    assert args.x_label is None
+    assert args.y_label is None
+
+
+def test_geographic_tick_formatters_show_cardinal_directions():
+    module = load_plot_module()
+    assert module.format_longitude_tick(0.0, None) == "0°"
+    assert module.format_longitude_tick(112.5, None) == "112.5°E"
+    assert module.format_longitude_tick(-30.0, None) == "30°W"
+    assert module.format_latitude_tick(-90.0, None) == "90°S"
+    assert module.format_latitude_tick(0.0, None) == "0°"
+    assert module.format_latitude_tick(23.125, None) == "23.1°N"
+
+
+def test_geographic_extent_caption_has_directional_ranges():
+    module = load_plot_module()
+    assert module.geographic_extent_caption(
+        np.asarray([0.0, 360.0]), np.asarray([-90.0, 90.0])
+    ) == "Longitude 0°E–360°E | Latitude 90°S–90°N"
+    assert module.geographic_extent_caption(
+        np.asarray([112.32, 115.67]), np.asarray([20.90, 23.12])
+    ) == "Longitude 112.32–115.67°E | Latitude 20.90–23.12°N"
