@@ -130,7 +130,7 @@ $$
 
 ### 4.2 训练和测试缺失率
 
-- PRE 最终模型：每个 batch 内逐样本采样 `r ~ Uniform(0.1, 0.9)`。
+- PRE 最终模型：每个 batch 内逐样本采样 `r ~ Uniform(0.0, 1.0)`。
 - ERA5 标准模型：同样使用 `r ~ Uniform(0.1, 0.9)`。
 - ERA5 极端稀疏模型：使用 `r ~ Uniform(0.0, 1.0)`，用于覆盖接近无观测的情况。
 - 训练脚本的验证和最终 `test_l1`：固定采用 50% 缺失率，便于 checkpoint 选择。
@@ -420,7 +420,11 @@ SSIM 使用 7 x 7 局部窗口。窗口中心必须有效且属于缺失评价�
 
 ## 10. 可视化结果
 
-绘图中的陆地区域和无效区域统一显示为空白，不再把模型在没有物理约束的陆地点输出误认为有效重建。每张图包含 reference、稀疏观测、model prediction 和 absolute error 等面板。PRE 图使用固定 `15.6 × 7.2 in`、`300 dpi`（`4680 × 2160 px`）画布；空间轴使用 `xi-grid index`/`eta-grid index`，第五维使用 `Sigma layer`，u/v 误差图共用 `0--0.12 m s^-1` 色标。
+正式可视化不是训练时的中心 `64 × 64` patch。绘图脚本先在完整测试样本上生成稀疏掩码，再用与正式评价相同的重叠 tiled inference 覆盖整个下采样域：PRE 为 `100 × 110 × 30`，ERA5 为 `180 × 360 × 8`。图中选取 PRE 第 15/30 个 sigma 层和 ERA5 第 5/8 个时间片展示二维完整域。
+
+每张图的四列依次为 **Ground Truth**、**Sparse Observations**、**adv-NO Reconstruction** 和 **Absolute Error**。只有最左列保留纵坐标，只有最底行保留横坐标；场值前三列在每个分量内共享由真值确定的对称色标。PRE 陆地和其他无效区域统一显示为空白，不把无物理约束的陆地输出误认为有效重建。
+
+PRE 图为 `18 × 8.8 in`、`300 dpi`（`5400 × 2640 px`），空间轴使用 `xi-grid index`/`eta-grid index`，第五维使用 `Sigma layer`，绝对误差固定为 `0--0.12 m s^-1`。ERA5 图为 `18 × 6.8 in`、`300 dpi`（`5400 × 2040 px`），空间轴使用 `Longitude index`/`Latitude index`，保持全球场 `2:1` 比例，绝对误差固定为 `0--10 m s^-1`。同一数据集所有缺失率使用相同画布和误差色标，便于逐图对比。
 
 ### PRE 最终模型
 
@@ -435,6 +439,9 @@ SSIM 使用 7 x 7 局部窗口。窗口中心必须有效且属于缺失评价�
 | 99%（1% 观测） | [`pre_99pct_visualization.png`](figures/pre_99pct_visualization.png) |
 
 ### ERA5 极端稀疏模型
+
+以下退化序列统一使用 `era_ragan_pretrained_0to100_ema_bs32` 的
+`generator_ema`，不混用标准范围 BCE checkpoint。
 
 | 缺失率 | 图像 |
 | ---: | --- |

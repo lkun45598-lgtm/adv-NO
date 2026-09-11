@@ -53,6 +53,10 @@ PRE:  [B, 4, 64, 64, 16] -> [B, 2, 64, 64, 16]
 ERA5: [B, 4, 64, 64,  8] -> [B, 2, 64, 64,  8]
 ```
 
+以上是训练和单次模型前向传播的 patch 尺寸，不是数据集或最终可视化的
+空间范围。正式推理使用重叠 tile 覆盖完整的下采样域，PRE 输出
+`100 × 110 × 30`，ERA5 输出 `180 × 360 × 8`。
+
 四个输入通道为均值填充后的稀疏 `u/v` 和共享观测掩码；两个输出通道为
 重建后的 `u/v`。`u`、`v` 分别使用训练集统计量做 z-score 归一化。
 
@@ -211,23 +215,26 @@ python -u 3_flow_reconstruction/no/adv_training/plot_sparse_visualization.py \
   --checkpoint outputs/era_ragan_pretrained_0to100_ema_bs32/best_model.pt \
   --config outputs/era_ragan_pretrained_0to100_ema_bs32/config.json \
   --output docs/figures/era5_50pct_visualization.png \
-  --mask-ratio 0.5 --sample 0 --time-index 4 --device cuda:0 \
-  --title "ERA5 Wind-Field Reconstruction from Sparse Observations" \
-  --u-label "Zonal wind component (u)" \
-  --v-label "Meridional wind component (v)"
+  --mask-ratio 0.5 --sample 0 --slice-index 4 --device cuda:0 \
+  --patch 64 --depth 8 --stride 32 --tile-batch 8 --error-vmax 10 \
+  --title "Full-Domain ERA5 Wind Velocity Reconstruction from Sparse Observations" \
+  --u-label "Zonal Wind Velocity (u)" --v-label "Meridional Wind Velocity (v)"
 ```
 
 评价 PRE 时替换数据、checkpoint 和 config，并在评价脚本中使用
-`--depth 16`；绘图脚本会从 checkpoint 读取深度。PRE 图例标签应改为海洋
-eastward/northward 流速。最终 PRE 的 7 个 JSON 和 PNG 已整理到
+`--depth 16`。PRE 图例标签应改为海洋 eastward/northward 流速。最终 PRE
+的 7 个 JSON 和 PNG 已整理到
 [`docs/results/pre_ragan_pretrained_0to100_ema_bs64/`](docs/results/pre_ragan_pretrained_0to100_ema_bs64)
 和 [`docs/figures/`](docs/figures)。两个脚本默认读取 `generator_ema`；只有显式使用
 `--raw-generator` 才会读取原始生成器。
 
-PRE 正式图片使用固定出版参数：`15.6 × 7.2 in`、`300 dpi`（输出
-`4680 × 2160 px`），横纵轴分别标为 `xi-grid index` 和 `eta-grid index`，
-第五维标为 `Sigma layer`；所有缺失率图片的绝对误差 colorbar 统一为
-`0--0.12 m s^-1`，便于跨缺失率比较。
+正式图片展示下采样后的完整域，而不是中心 `64 × 64` patch：PRE 为
+`100 × 110`、ERA5 为 `180 × 360`。每张图依次显示 `Ground Truth`、
+`Sparse Observations`、`adv-NO Reconstruction` 和 `Absolute Error`。PRE
+图片为 `5400 × 2640 px`，坐标使用 `xi-grid index`/`eta-grid index`，第五维
+标为 `Sigma layer`，误差色标固定为 `0--0.12 m s^-1`；ERA5 图片为
+`5400 × 2040 px`，保持全球场 `2:1` 比例，误差色标固定为
+`0--10 m s^-1`。所有图片均为 `300 dpi`。
 
 ## 核心结果
 

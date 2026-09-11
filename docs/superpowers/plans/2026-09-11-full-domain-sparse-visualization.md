@@ -16,11 +16,11 @@
 - Modify: `tests/test_sparse_visualization_layout.py`
 - Modify: `3_flow_reconstruction/no/adv_training/plot_sparse_visualization.py`
 
-- [ ] **Step 1: Write the failing prediction test**
+- [x] **Step 1: Write the failing prediction test**
 
 Add a test that provides a synthetic `[1, 2, 100, 110, 30]` field and checks the plotting prediction helper returns the same full horizontal/depth shape rather than `64 x 64 x 16`.
 
-- [ ] **Step 2: Run the test and verify RED**
+- [x] **Step 2: Run the test and verify RED**
 
 Run:
 
@@ -30,7 +30,7 @@ python -m pytest -q tests/test_sparse_visualization_layout.py
 
 Expected: failure because the current helper crops to the center patch.
 
-- [ ] **Step 3: Implement full-domain prediction**
+- [x] **Step 3: Implement full-domain prediction**
 
 Load the complete selected test record, construct its complete sparse input,
 then call:
@@ -49,7 +49,7 @@ prediction = tiled_predict(
 Return full `target`, `prediction`, `observed`, and `valid` arrays. Do not
 compute `y0`, `x0`, or `z0` center-crop offsets.
 
-- [ ] **Step 4: Run the prediction tests and verify GREEN**
+- [x] **Step 4: Run the prediction tests and verify GREEN**
 
 Run the same pytest command and expect all prediction tests to pass.
 
@@ -59,7 +59,7 @@ Run the same pytest command and expect all prediction tests to pass.
 - Modify: `tests/test_sparse_visualization_layout.py`
 - Modify: `3_flow_reconstruction/no/adv_training/plot_sparse_visualization.py`
 
-- [ ] **Step 1: Write failing label and visibility tests**
+- [x] **Step 1: Write failing label and visibility tests**
 
 Assert the column titles are exactly:
 
@@ -70,24 +70,24 @@ Assert the column titles are exactly:
 Assert only the leftmost column displays y tick labels and only the bottom row
 displays x tick labels.
 
-- [ ] **Step 2: Run the tests and verify RED**
+- [x] **Step 2: Run the tests and verify RED**
 
 Expected: failure because current titles use `Reference field` and all panels
 repeat both axes.
 
-- [ ] **Step 3: Implement the GridSpec layout**
+- [x] **Step 3: Implement the GridSpec layout**
 
 Build a two-row layout with three field panels, one narrow shared field
 colorbar, one error panel, and one narrow error colorbar per row. Apply bold
 14 pt column titles, bold 12 pt row labels, 11 pt axes, and 10 pt ticks/colorbar
 labels. Hide interior axes labels/ticks while preserving panel frames.
 
-- [ ] **Step 4: Use full-domain metadata**
+- [x] **Step 4: Use full-domain metadata**
 
 Replace `central H x W tile` with `full H x W domain`. Format PRE captions as
 `Sigma layer n of 30` and ERA5 captions as `Time step n of 8`.
 
-- [ ] **Step 5: Run layout tests and verify GREEN**
+- [x] **Step 5: Run layout tests and verify GREEN**
 
 Run:
 
@@ -108,17 +108,17 @@ Expected: all tests pass.
 - Modify: `docs/figures/pre_90pct_visualization.png`
 - Modify: `docs/figures/pre_99pct_visualization.png`
 
-- [ ] **Step 1: Run GPU rendering for all PRE rates**
+- [x] **Step 1: Run GPU rendering for all PRE rates**
 
 Use the final `pre_ragan_pretrained_0to100_ema_bs64` EMA checkpoint, sample 0,
 sigma layer 15 of 30, and rates `0.01 0.10 0.30 0.50 0.70 0.90 0.99`.
 
-- [ ] **Step 2: Verify output dimensions and visible domain**
+- [x] **Step 2: Verify output dimensions and visible domain**
 
 Use Pillow to assert all seven files have identical dimensions. Check the
 subtitle states `full 100 x 110 domain` and `Sigma layer 15 of 30`.
 
-- [ ] **Step 3: Inspect 1%, 50%, and 99% images**
+- [x] **Step 3: Inspect 1%, 50%, and 99% images**
 
 Check title/axis/colorbar clipping, PRE land masking, sparse observations,
 panel order, and error visibility.
@@ -133,7 +133,7 @@ panel order, and error visibility.
 - Modify: `docs/figures/era5_90pct_visualization.png`
 - Modify: `docs/figures/era5_99pct_visualization.png`
 
-- [ ] **Step 1: Use one checkpoint for the degradation series**
+- [x] **Step 1: Use one checkpoint for the degradation series**
 
 Use `era_ragan_pretrained_0to100_ema_bs32` for every 10%--99% figure so the
 series shows one model's degradation curve and remains consistent with the
@@ -141,12 +141,12 @@ project report's "ERA5 extreme-sparsity model" visualization section. Do not
 mix the standard BCE checkpoint and extreme-sparsity checkpoint under one set
 of filenames.
 
-- [ ] **Step 2: Run GPU rendering**
+- [x] **Step 2: Run GPU rendering**
 
 Render sample 0, time step 5 of 8, over the full `180 x 360` domain. Preserve
 the global `2:1` field aspect ratio.
 
-- [ ] **Step 3: Verify dimensions and visual quality**
+- [x] **Step 3: Verify dimensions and visual quality**
 
 Assert all ERA5 files share one pixel size and inspect 10%, 50%, and 99% for
 layout, readable font size, color scales, and complete-domain coverage.
@@ -159,13 +159,13 @@ layout, readable font size, color scales, and complete-domain coverage.
 - Modify: `docs/results/pre_ragan_pretrained_0to100_ema_bs64/README.md`
 - Modify: `3_flow_reconstruction/no/adv_training/README_sparse_tasks.md`
 
-- [ ] **Step 1: Update documentation**
+- [x] **Step 1: Update documentation**
 
 Replace references to center `64 x 64` figures with PRE `100 x 110` and ERA5
 `180 x 360` full-domain figures. Document the four column titles, sparse axis
 labels, selected layer/time step, colorbar policy, and checkpoint provenance.
 
-- [ ] **Step 2: Run automated verification**
+- [x] **Step 2: Run automated verification**
 
 Run:
 
@@ -176,7 +176,7 @@ python -m pytest -q tests
 
 Expected: no whitespace errors and all tests pass.
 
-- [ ] **Step 3: Verify generated assets**
+- [x] **Step 3: Verify generated assets**
 
 Use Pillow/file inspection to verify all expected PNG files are nonempty and
 have consistent per-dataset dimensions. Confirm no HDF5, checkpoint, or log is
