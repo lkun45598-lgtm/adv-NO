@@ -16,11 +16,11 @@
 - Modify: `tests/test_sparse_visualization_layout.py`
 - Modify: `3_flow_reconstruction/no/adv_training/plot_sparse_visualization.py`
 
-- [ ] **Step 1: Write the failing prediction test**
+- [x] **Step 1: Write the failing prediction test**
 
 Add a test that provides a synthetic `[1, 2, 100, 110, 30]` field and checks the plotting prediction helper returns the same full horizontal/depth shape rather than `64 x 64 x 16`.
 
-- [ ] **Step 2: Run the test and verify RED**
+- [x] **Step 2: Run the test and verify RED**
 
 Run:
 
@@ -30,7 +30,7 @@ python -m pytest -q tests/test_sparse_visualization_layout.py
 
 Expected: failure because the current helper crops to the center patch.
 
-- [ ] **Step 3: Implement full-domain prediction**
+- [x] **Step 3: Implement full-domain prediction**
 
 Load the complete selected test record, construct its complete sparse input,
 then call:
@@ -49,7 +49,7 @@ prediction = tiled_predict(
 Return full `target`, `prediction`, `observed`, and `valid` arrays. Do not
 compute `y0`, `x0`, or `z0` center-crop offsets.
 
-- [ ] **Step 4: Run the prediction tests and verify GREEN**
+- [x] **Step 4: Run the prediction tests and verify GREEN**
 
 Run the same pytest command and expect all prediction tests to pass.
 
@@ -59,7 +59,7 @@ Run the same pytest command and expect all prediction tests to pass.
 - Modify: `tests/test_sparse_visualization_layout.py`
 - Modify: `3_flow_reconstruction/no/adv_training/plot_sparse_visualization.py`
 
-- [ ] **Step 1: Write failing label and visibility tests**
+- [x] **Step 1: Write failing label and visibility tests**
 
 Assert the column titles are exactly:
 
@@ -70,24 +70,24 @@ Assert the column titles are exactly:
 Assert only the leftmost column displays y tick labels and only the bottom row
 displays x tick labels.
 
-- [ ] **Step 2: Run the tests and verify RED**
+- [x] **Step 2: Run the tests and verify RED**
 
 Expected: failure because current titles use `Reference field` and all panels
 repeat both axes.
 
-- [ ] **Step 3: Implement the GridSpec layout**
+- [x] **Step 3: Implement the GridSpec layout**
 
 Build a two-row layout with three field panels, one narrow shared field
 colorbar, one error panel, and one narrow error colorbar per row. Apply bold
 14 pt column titles, bold 12 pt row labels, 11 pt axes, and 10 pt ticks/colorbar
 labels. Hide interior axes labels/ticks while preserving panel frames.
 
-- [ ] **Step 4: Use full-domain metadata**
+- [x] **Step 4: Use full-domain metadata**
 
 Replace `central H x W tile` with `full H x W domain`. Format PRE captions as
 `Sigma layer n of 30` and ERA5 captions as `Time step n of 8`.
 
-- [ ] **Step 5: Run layout tests and verify GREEN**
+- [x] **Step 5: Run layout tests and verify GREEN**
 
 Run:
 
