@@ -3,7 +3,7 @@
 本仓库面向考核任务 A 和任务 D，使用 Gen4Turbulence 中的
 `3_flow_reconstruction/no/adv_training` 分支完成稀疏流场重建：
 
-- **任务 A（PRE）**：海洋表层 eastward/northward 流速分量 `u/v`；
+- **任务 A（PRE）**：海洋三维 eastward/northward 流速分量 `u/v`（30 个 sigma 垂向层）；
 - **任务 D（ERA5）**：全球 zonal/meridional 风速分量 `u/v`。
 
 当前实现采用保守下采样、有效区域掩码、纯 NO 预训练、GAN 微调和 EMA
@@ -39,8 +39,9 @@
 | PRE | `[5295, 2, 100, 110, 30]` | `4236 / 529 / 530` |
 | ERA5 | `[219, 2, 180, 360, 8]` | `185 / 17 / 17` |
 
-`D` 是连续时间窗口长度，不是物理深度。数据文件由预处理脚本本地生成，
-不会提交到 GitHub。
+PRE 的 `D=30` 表示 30 个 terrain-following sigma 垂向层；ERA5 的 `D=8`
+表示连续的 8 个经 2 倍时间平均后的时间片，不是物理深度。数据文件由预处理
+脚本本地生成，不会提交到 GitHub。
 
 ## 模型与训练
 
@@ -63,9 +64,8 @@ ERA5: [B, 4, 64, 64,  8] -> [B, 2, 64, 64,  8]
 ### 缺失率与损失
 
 - PRE 最终模型和 ERA5 极端模型训练时逐样本随机采样 `0%--100%` 缺失率；ERA5 标准对照模型使用 `10%--90%`；
-- ERA5 极端稀疏实验训练时采样 `0%--100%` 缺失率；
-- 正式测试固定使用 `10%`、`30%`、`50%`、`70%`、`90%`，并额外测试 `99%`
-  缺失率（仅 1% 观测）；
+- 正式测试固定使用 `10%`、`30%`、`50%`、`70%`、`90%`；PRE 还测试
+  `1%`，PRE 与 ERA5 极端模型均额外测试 `99%` 缺失率（仅 1% 观测）；
 - 生成器使用有效区域约束的归一化 L1；GAN 阶段使用
   `L_G = L_recon + 0.1 L_GAN`；
 - 第一阶段只训练纯 NO，第二阶段从第一阶段最佳 `generator_ema` 开始进行
@@ -222,7 +222,7 @@ python -u 3_flow_reconstruction/no/adv_training/plot_sparse_visualization.py \
 ```
 
 评价 PRE 时替换数据、checkpoint 和 config，并在评价脚本中使用
-`--depth 16`。PRE 图例标签应改为海洋 eastward/northward 流速。最终 PRE
+`--depth 16`；PRE 行标签使用 Eastward/Northward Velocity。最终 PRE
 的 7 个 JSON 和 PNG 已整理到
 [`docs/results/pre_ragan_pretrained_0to100_ema_bs64/`](docs/results/pre_ragan_pretrained_0to100_ema_bs64)
 和 [`docs/figures/`](docs/figures)。两个脚本默认读取 `generator_ema`；只有显式使用
@@ -234,7 +234,7 @@ python -u 3_flow_reconstruction/no/adv_training/plot_sparse_visualization.py \
 图片为 `5400 × 2640 px`，使用源 RHO 曲线网格聚合后的真实经纬度
 （约 `112.32--115.67°E`、`20.90--23.12°N`），第五维标为 `Sigma layer`；
 ERA5 图片为 `5400 × 2040 px`，使用真实全球经纬度 `0--360°E`、
-`90°N--90°S`，保持全球场 `2:1` 比例。两类图的列标题均位于图像轴外的
+`90°S--90°N`（数组按 `90°N -> 90°S` 降序排列），保持全球场 `2:1` 比例。两类图的列标题均位于图像轴外的
 独立留白区域，误差色标分别固定为 `0--0.12 m s^-1` 和 `0--10 m s^-1`。
 所有图片均为 `300 dpi`。
 

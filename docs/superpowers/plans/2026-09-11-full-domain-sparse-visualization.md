@@ -4,6 +4,9 @@
 
 **Goal:** Replace center-patch PRE and ERA5 reconstruction figures with correctly labeled, publication-ready full-domain figures generated through tiled inference.
 
+> Status: implemented in `c524aaf`; the documentation and figure checks below
+> describe the final physical-coordinate output.
+
 **Architecture:** Keep `evaluate_sparse_metrics.tiled_predict` as the single tiled-inference implementation and call it from the plotting module. Split plotting into testable data preparation, layout, axis-visibility, and rendering helpers; retain the existing CLI while adding explicit tile and figure controls.
 
 **Tech Stack:** Python 3.10, PyTorch, h5py, NumPy, Matplotlib, pytest, Pillow.
@@ -162,8 +165,9 @@ layout, readable font size, color scales, and complete-domain coverage.
 - [x] **Step 1: Update documentation**
 
 Replace references to center `64 x 64` figures with PRE `100 x 110` and ERA5
-`180 x 360` full-domain figures. Document the four column titles, sparse axis
-labels, selected layer/time step, colorbar policy, and checkpoint provenance.
+`180 x 360` full-domain figures. Document the four column titles, physical
+longitude/latitude axes, selected layer/time step, colorbar policy, and
+checkpoint provenance.
 
 - [x] **Step 2: Run automated verification**
 
@@ -182,7 +186,7 @@ Use Pillow/file inspection to verify all expected PNG files are nonempty and
 have consistent per-dataset dimensions. Confirm no HDF5, checkpoint, or log is
 staged.
 
-- [ ] **Step 4: Commit and push**
+- [x] **Step 4: Commit and push**
 
 Commit code/tests/figures/docs together with a message describing full-domain
 visualization, then push `main` to the configured `submission` remote and

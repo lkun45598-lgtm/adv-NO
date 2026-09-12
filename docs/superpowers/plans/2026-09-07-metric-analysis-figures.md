@@ -1,5 +1,9 @@
 # Metric Analysis Figures Implementation Plan
 
+> Status: historical plan superseded by the final `0%--100%` PRE experiment and
+> full-domain visualization. The path and rate examples below are synchronized
+> with the retained final artifacts.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build one reproducible plotting command that reads the retained PRE/ERA5 metric JSON files and produces three publication-style analysis figures as PNG and PDF previews.
@@ -42,7 +46,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 RATES_STANDARD = (10, 30, 50, 70, 90)
-RATES_STRESS = (*RATES_STANDARD, 99)
+RATES_PRE = (1, *RATES_STANDARD, 99)
 METRICS = ("mae", "rmse", "relative_l2", "ssim")
 
 
@@ -94,10 +98,10 @@ from pathlib import Path
 sys.path.insert(0, "3_flow_reconstruction/no/adv_training")
 from plot_metric_analysis import load_single, load_summary
 
-single = load_single(Path("outputs/pre_ragan_pretrained_ema_bs64/evaluation_final/metrics_50pct.json"))
+single = load_single(Path("outputs/pre_ragan_pretrained_0to100_ema_bs64/evaluation_final/metrics_50pct.json"))
 mean, std = load_summary(Path("outputs/era_bce_pretrained_ema_bs32/evaluation_multiseed/summary_50pct.json"))
 assert set(single) == {"mae", "rmse", "relative_l2", "ssim"}
-assert abs(single["mae"] - 0.0023488294) < 1e-8
+assert abs(single["mae"] - 0.0026848558) < 1e-8
 assert abs(mean["mae"] - 0.4205220302) < 1e-8
 assert std["mae"] > 0
 PY
@@ -175,28 +179,28 @@ def finish_figure(fig: plt.Figure, output_stem: Path) -> None:
 
 def plot_pre_robustness(repo: Path, output_stem: Path) -> None:
     paths = [
-        repo / "outputs/pre_ragan_pretrained_ema_bs64/evaluation_final" /
-        ("metrics_1pct_observed.json" if rate == 99 else f"metrics_{rate}pct.json")
-        for rate in RATES_STRESS
+        repo / "outputs/pre_ragan_pretrained_0to100_ema_bs64/evaluation_final" /
+        f"metrics_{rate}pct.json"
+        for rate in RATES_PRE
     ]
     series = load_single_series(paths)
     fig, axes = plt.subplots(2, 2, figsize=(10.6, 7.2), sharex=True)
     for axis, name in zip(axes.flat, METRICS):
         values = scale_values(name, series[name])
-        axis.plot(RATES_STRESS, values, color="#0072B2", marker="o", linewidth=2, markersize=5)
+        axis.plot(RATES_PRE, values, color="#0072B2", marker="o", linewidth=2, markersize=5)
         axis.axvspan(90, 100, color="#D55E00", alpha=0.08)
         axis.scatter([99], [values[-1]], color="#D55E00", marker="D", s=42, zorder=3,
                      label="99% stress test")
         if name in {"mae", "rmse", "relative_l2"}:
             axis.set_yscale("log")
         axis.set_ylabel(metric_label(name))
-        axis.set_xticks(RATES_STRESS)
+        axis.set_xticks(RATES_PRE)
         axis.grid(axis="y", color="#D1D5DB", linewidth=0.6, alpha=0.8)
     for axis in axes[-1]:
         axis.set_xlabel("Missing rate (%)")
     axes[0, 0].legend(frameon=False, loc="upper left")
     fig.suptitle("PRE Sparse-Reconstruction Robustness Across Missing Rates", fontweight="bold")
-    fig.text(0.5, 0.01, "Final pretrained RaGAN + EMA model; 99% missing is outside the 10%--90% training range.", ha="center", color="#4B5563")
+    fig.text(0.5, 0.01, "Final pretrained RaGAN + EMA model; 99% missing is an extreme-sparsity stress test covered by Uniform(0.0, 1.0) training.", ha="center", color="#4B5563")
     fig.tight_layout(rect=(0, 0.035, 1, 0.95))
     finish_figure(fig, output_stem)
 ```

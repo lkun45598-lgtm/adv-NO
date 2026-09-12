@@ -27,6 +27,10 @@ The formal conservative files currently contain:
 | A | `[5295, 2, 100, 110, 30]` | `4236 / 529 / 530` | `0.73373` |
 | D | `[219, 2, 180, 360, 8]` | `185 / 17 / 17` | `1.0` |
 
+For PRE, the final dimension contains 30 terrain-following sigma vertical
+layers. For ERA5, it contains eight consecutive time steps after 2x temporal
+averaging and is not a physical-depth axis.
+
 The formal training-split statistics are recorded in each runner's
 `config.json`; the ERA5 run uses `mean=(2.98951411, -0.01058338)` and
 `std=(11.58474255, 4.26915359)` for `(u, v)` respectively.
@@ -160,7 +164,8 @@ Observations`, `adv-NO Reconstruction`, and `Absolute Error`; field scales are
 shared by the first three columns within each row. PRE uses the source RHO
 curvilinear longitude/latitude grid aggregated with the same 4x4 conservative
 weights as the field, while ERA5 uses the regular global `0--360°E` and
-`90°N--90°S` grid with the source descending-latitude orientation preserved.
+`90°S--90°N` geographic range; the underlying array preserves the source
+descending-latitude order `90°N -> 90°S`.
 Column titles are placed in a dedicated margin above the image axes. PRE and
 ERA5 use fixed cross-rate absolute-error limits of `0.12 m s^-1` and
 `10 m s^-1`, respectively. ERA5's visualization series uses only the

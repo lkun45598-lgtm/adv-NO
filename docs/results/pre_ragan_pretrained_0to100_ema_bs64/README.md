@@ -1,6 +1,6 @@
 # PRE 0%--100% 缺失率最终结果
 
-这是 Task A（PRE 海洋 `u/v`）最终模型的正式多缺失率评价结果。
+这是 Task A（PRE 海洋三维 `u/v`，30 个 sigma 垂向层）最终模型的正式多缺失率评价结果。
 
 - 模型：纯 NO 预训练 → RaGAN 微调 → `generator_ema`
 - 训练缺失率：`Uniform(0.0, 1.0)`
@@ -15,7 +15,7 @@
 patch；统一使用 `18 × 8.8 in`、`300 dpi`（`5400 × 2640 px`）画布。PRE
 第五维是垂向 sigma 层，图中展示第 15/30 层并标为 `Sigma layer`；空间轴标为
 源 RHO 曲线网格经 `4×4` 聚合后的真实经纬度（约
-`112.32--115.67°E`、`20.90--23.12°N`）。四列依次为 `Ground Truth`、
+`112.32--115.67°E`、`20.90--23.12°N`）。列标题位于图像轴上方的独立留白区域；四列依次为 `Ground Truth`、
 `Sparse Observations`、`adv-NO Reconstruction` 和 `Absolute Error`。前三列
 在每个分量内共享场值色标，u/v 绝对误差固定使用 `0--0.12 m s^-1` 色标。
 

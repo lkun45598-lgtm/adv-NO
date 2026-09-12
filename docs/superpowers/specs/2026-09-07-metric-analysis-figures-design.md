@@ -1,5 +1,9 @@
 # Metric Analysis Figures Design
 
+> Status: historical preview design superseded by the final `0%--100%` PRE
+> experiment and full-domain visualization. The paths, rates, and annotations
+> below are kept as an implementation record and use the final artifact names.
+
 ## Goal
 
 Generate three standalone, publication-style analysis figures from the existing
@@ -12,8 +16,8 @@ visualizations and do not require new training or inference.
 Initial review files are written under the ignored directory
 `outputs/metric_analysis_preview/` as 300 DPI PNG and vector PDF files:
 
-1. `pre_missing_rate_analysis`: PRE final-model degradation across 10%, 30%,
-   50%, 70%, 90%, and 99% missing rates.
+1. `pre_missing_rate_analysis`: PRE final-model degradation across 1%, 10%,
+   30%, 50%, 70%, 90%, and 99% missing rates.
 2. `era5_training_strategy_analysis`: Direct BCE, Direct RaGAN, pretrained BCE
    + EMA, and pretrained RaGAN + EMA across 10%--90% missing rates.
 3. `era5_extreme_sparsity_tradeoff`: standard-range pretrained BCE + EMA versus
@@ -26,8 +30,9 @@ ignored preview files are created.
 
 ## Data Sources
 
-- PRE: `outputs/pre_ragan_pretrained_ema_bs64/evaluation_final/metrics_*.json`.
-  These are complete-test, seed-25 results.
+- PRE: `outputs/pre_ragan_pretrained_0to100_ema_bs64/evaluation_final/metrics_*.json`.
+  These are complete-test, seed-25 results; the 99% report is
+  `metrics_99pct.json`.
 - ERA5 standard strategy comparison: `evaluation_multiseed/summary_*.json` from
   the four direct/pretrained BCE/RaGAN run directories. Curves use the reported
   three-seed mean and show one sample standard deviation.
@@ -50,10 +55,13 @@ Missing rate is the x-axis in percent.
 ### PRE Robustness
 
 - Plot only the final pretrained RaGAN + EMA model.
+- Use the ordered rates 1%, 10%, 30%, 50%, 70%, 90%, and 99%; 1% is the
+  near-complete-observation endpoint and 99% is the extreme-sparsity endpoint.
 - Use logarithmic y-scales for error panels when necessary so the valid
-  10%--90% trend remains readable despite the 99% outlier.
-- Mark 99% as an out-of-distribution stress test because PRE was trained on
-  10%--90% missing rates.
+  1%--90% trend remains readable despite the 99% endpoint.
+- Mark 99% as an extreme-sparsity stress-test point. It is covered by the
+  final PRE training distribution (`Uniform(0.0, 1.0)`), so it must not be
+  described as out-of-distribution.
 
 ### ERA5 Training Strategy
 

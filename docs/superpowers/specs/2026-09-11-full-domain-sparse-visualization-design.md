@@ -1,5 +1,8 @@
 # Full-Domain Sparse Reconstruction Visualization Design
 
+> Status: implemented in `c524aaf`. The final figures use the complete
+> processed domains and physical geographic coordinates described below.
+
 ## Goal
 
 Replace the current center-crop `64 x 64` PRE and ERA5 presentation figures
@@ -60,10 +63,10 @@ ambiguous or unnecessarily abbreviated.
 
 ## Axes And Typography
 
-- PRE axes: `xi-grid index` and `eta-grid index`, because the processed HDF5
-  does not store geographic coordinates.
-- ERA5 axes: `Longitude index` and `Latitude index` unless geographic
-  coordinates are explicitly added later.
+- PRE axes: physical longitude/latitude from the source RHO curvilinear grid,
+  aggregated with the same conservative `4 x 4` weights as the field.
+- ERA5 axes: physical longitude `0--360°E` and latitude `90°S--90°N`; the
+  source descending array order `90°N -> 90°S` is preserved.
 - Y-axis labels and ticks appear only in the leftmost column.
 - X-axis labels and ticks appear only in the bottom row.
 - Main title: bold, 18 pt.
