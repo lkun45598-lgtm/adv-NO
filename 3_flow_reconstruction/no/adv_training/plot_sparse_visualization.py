@@ -304,7 +304,7 @@ def format_latitude_tick(value: float, _position) -> str:
 def geographic_tick_interval(shading: str) -> float | None:
     """Return the major geographic tick spacing for each grid representation."""
     if shading == "nearest":
-        return 0.5
+        return 1.0
     if shading == "flat":
         return None
     raise ValueError(f"unsupported geographic shading: {shading!r}")

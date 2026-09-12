@@ -372,20 +372,20 @@ def test_geographic_extent_caption_has_directional_ranges():
     ) == "Longitude 112.32–115.67°E | Latitude 20.90–23.12°N"
 
 
-def test_pre_geographic_grid_uses_half_degree_major_ticks():
+def test_pre_geographic_grid_uses_one_degree_major_ticks():
     module = load_plot_module()
-    assert module.geographic_tick_interval("nearest") == 0.5
+    assert module.geographic_tick_interval("nearest") == 1.0
     assert module.geographic_tick_interval("flat") is None
 
 
-def test_half_degree_tick_locator_is_applied_to_visible_axes():
+def test_one_degree_tick_locator_is_applied_to_visible_axes():
     module = load_plot_module()
     figure, axes = plt.subplots(2, 4)
     try:
-        module.apply_geographic_tick_formatters(axes, major_interval=0.5)
+        module.apply_geographic_tick_formatters(axes, major_interval=1.0)
         locator = axes[1, 0].xaxis.get_major_locator()
         ticks = locator.tick_values(112.32, 115.67)
-        np.testing.assert_allclose(ticks, np.arange(112.0, 116.5, 0.5))
+        np.testing.assert_allclose(ticks, np.arange(112.0, 117.0, 1.0))
     finally:
         plt.close(figure)
 

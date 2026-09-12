@@ -233,7 +233,7 @@ python -u 3_flow_reconstruction/no/adv_training/plot_sparse_visualization.py \
 `Absolute Error (|Reconstruction - Ground Truth|)`。PRE
 图片为 `5400 × 2640 px`，使用源 RHO 曲线网格聚合后的真实经纬度
 （约 `112.32--115.67°E`、`20.90--23.12°N`），经纬度主刻度间隔固定为
-`0.5°`，第五维标为 `Sigma layer`；
+`1°`，第五维标为 `Sigma layer`；
 ERA5 图片为 `5400 × 2040 px`，使用真实全球经纬度 `0--360°E`、
 `90°S--90°N`（数组按 `90°N -> 90°S` 降序排列），保持全球场 `2:1` 比例。两类图的列标题均位于图像轴外的
 独立留白区域；场值色标标注 `Velocity (m s^-1)`，误差色标标注
