@@ -118,16 +118,24 @@ def test_column_titles_are_above_and_do_not_intersect_image_axes():
     module = load_plot_module()
     figure, axes = plt.subplots(2, 4, figsize=(18, 7))
     try:
+        main_title = figure.suptitle(
+            "Full-Domain Velocity Reconstruction from Sparse Observations",
+            fontsize=18,
+            fontweight="bold",
+            y=0.985,
+        )
         title_artists = module.add_column_titles(
             figure,
             axes,
-            ("Ground Truth", "Sparse Observations", "adv-NO Reconstruction", "Absolute Error"),
+            module.panel_titles(0.5),
         )
         figure.canvas.draw()
         renderer = figure.canvas.get_renderer()
+        main_title_box = main_title.get_window_extent(renderer=renderer)
         for title_artist, axis in zip(title_artists, axes[0]):
             title_box = title_artist.get_window_extent(renderer=renderer)
             assert title_box.y0 > axis.get_window_extent(renderer=renderer).y1
+            assert title_box.y1 < main_title_box.y0
     finally:
         plt.close(figure)
 
@@ -259,7 +267,7 @@ def test_publication_column_titles_and_axis_visibility():
         "Ground Truth",
         "Sparse Observations",
         "adv-NO Reconstruction",
-        "Absolute Error",
+        "Absolute Error\n(|Reconstruction - Ground Truth|)",
     )
     for row in range(2):
         for col in range(4):
@@ -362,3 +370,43 @@ def test_geographic_extent_caption_has_directional_ranges():
     assert module.geographic_extent_caption(
         np.asarray([112.32, 115.67]), np.asarray([20.90, 23.12])
     ) == "Longitude 112.32–115.67°E | Latitude 20.90–23.12°N"
+
+
+def test_colorbar_labels_include_physical_units_and_error_definition():
+    module = load_plot_module()
+    assert module.colorbar_labels() == (
+        "Velocity (m s$^{-1}$)",
+        "Absolute error (m s$^{-1}$)",
+    )
+
+
+def test_field_colorbar_ticks_are_positioned_away_from_error_panel():
+    module = load_plot_module()
+    figure, axes = plt.subplots()
+    try:
+        image = axes.imshow(np.zeros((2, 2)))
+        colorbar = figure.colorbar(image, ax=axes)
+        module.configure_colorbar_axis(colorbar, side="left")
+        assert colorbar.ax.yaxis.get_ticks_position() == "left"
+        assert colorbar.ax.yaxis.get_label_position() == "left"
+    finally:
+        plt.close(figure)
+
+
+def test_publication_grid_keeps_error_colorbar_label_inside_canvas():
+    module = load_plot_module()
+    figure = plt.figure(figsize=(18.0, 8.8))
+    try:
+        axes, _field_color_axes, error_color_axes = module.create_publication_axes(
+            figure, domain_aspect=110 / 100
+        )
+        image = axes[0, 3].imshow(np.zeros((2, 2)))
+        colorbar = figure.colorbar(image, cax=error_color_axes[0])
+        module.configure_colorbar_axis(colorbar, side="right")
+        colorbar.set_label("Absolute error (m s$^{-1}$)", rotation=270, labelpad=17)
+        figure.canvas.draw()
+        renderer = figure.canvas.get_renderer()
+        label_box = colorbar.ax.yaxis.label.get_window_extent(renderer=renderer)
+        assert label_box.x1 <= figure.bbox.x1 - 5
+    finally:
+        plt.close(figure)

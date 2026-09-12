@@ -33,8 +33,54 @@ def panel_titles(mask_ratio: float) -> tuple[str, str, str, str]:
         "Ground Truth",
         "Sparse Observations",
         "adv-NO Reconstruction",
-        "Absolute Error",
+        "Absolute Error\n(|Reconstruction - Ground Truth|)",
     )
+
+
+def colorbar_labels() -> tuple[str, str]:
+    """Return unit-labelled captions for field and absolute-error colorbars."""
+    return "Velocity (m s$^{-1}$)", "Absolute error (m s$^{-1}$)"
+
+
+def configure_colorbar_axis(colorbar, side: str) -> None:
+    """Place colorbar ticks and its label on the requested vertical side."""
+    if side not in {"left", "right"}:
+        raise ValueError(f"colorbar side must be 'left' or 'right', got {side!r}")
+    colorbar.ax.yaxis.set_ticks_position(side)
+    colorbar.ax.yaxis.set_label_position(side)
+
+
+def create_publication_axes(figure, domain_aspect: float):
+    """Create the two-row publication grid with unclipped colorbar margins."""
+    top = 0.88 if domain_aspect >= 1.5 else 0.89
+    bottom = 0.10 if domain_aspect >= 1.5 else 0.08
+    grid = GridSpec(
+        2,
+        8,
+        figure=figure,
+        # Spacers on both sides of each colorbar keep its tick labels and
+        # unit caption outside the data panels.  Field colorbar ticks are on
+        # the left, so they face the reconstruction panel without reaching
+        # the error panel.
+        width_ratios=(1.0, 1.0, 1.0, 0.12, 0.045, 0.12, 1.0, 0.045),
+        left=0.075,
+        right=0.94,
+        bottom=bottom,
+        top=top,
+        wspace=0.20,
+        hspace=0.18,
+    )
+    axes = np.empty((2, 4), dtype=object)
+    field_color_axes = []
+    error_color_axes = []
+    for row in range(2):
+        axes[row, 0] = figure.add_subplot(grid[row, 0])
+        axes[row, 1] = figure.add_subplot(grid[row, 1])
+        axes[row, 2] = figure.add_subplot(grid[row, 2])
+        field_color_axes.append(figure.add_subplot(grid[row, 4]))
+        axes[row, 3] = figure.add_subplot(grid[row, 6])
+        error_color_axes.append(figure.add_subplot(grid[row, 7]))
+    return axes, field_color_axes, error_color_axes
 
 
 def visualization_labels(title: str, u_label: str, v_label: str) -> tuple[str, str, str]:
@@ -203,10 +249,10 @@ def add_column_titles(figure, axes: np.ndarray, titles: tuple[str, ...]):
         artists.append(
             figure.text(
                 (position.x0 + position.x1) / 2,
-                position.y1 + 0.012,
+                position.y1 + 0.065,
                 title,
                 ha="center",
-                va="bottom",
+                va="top",
                 fontsize=14,
                 fontweight="bold",
                 color="#111827",
@@ -463,7 +509,7 @@ def predict_sample(
 
 
 def render(args):
-    target, prediction, observed, valid, generator_source = predict_sample(
+    target, prediction, observed, valid, _generator_source = predict_sample(
         args.data,
         args.checkpoint,
         args.config,
@@ -491,7 +537,7 @@ def render(args):
     error_limits = np.nanmax(absolute_error, axis=(1, 2))
     error_scales = resolve_error_limits(error_limits, args.error_vmax)
     title, u_label, v_label = visualization_labels(args.title, args.u_label, args.v_label)
-    _, height, width, full_depth = target.shape
+    _, height, width, _full_depth = target.shape
     longitude, latitude, shading = load_spatial_grid(
         args.data,
         expected_shape=(height, width),
@@ -503,12 +549,9 @@ def render(args):
         args.x_label or default_x_label,
         args.y_label or default_y_label,
     )
-    extent_caption = geographic_extent_caption(longitude, latitude)
     domain_aspect = width / height
     figure_width = args.figure_width or 18.0
     figure_height = args.figure_height or (6.8 if domain_aspect >= 1.5 else 8.8)
-    top = 0.79 if domain_aspect >= 1.5 else 0.82
-    bottom = 0.15 if domain_aspect >= 1.5 else 0.11
 
     plt.rcParams.update({
         "font.family": "DejaVu Sans",
@@ -520,28 +563,11 @@ def render(args):
     })
 
     figure = plt.figure(figsize=(figure_width, figure_height), constrained_layout=False)
-    grid = GridSpec(
-        2,
-        6,
-        figure=figure,
-        width_ratios=(1.0, 1.0, 1.0, 0.035, 1.0, 0.035),
-        left=0.075,
-        right=0.975,
-        bottom=bottom,
-        top=top,
-        wspace=0.16,
-        hspace=0.18,
+    axes, field_color_axes, error_color_axes = create_publication_axes(
+        figure, domain_aspect
     )
-    axes = np.empty((2, 4), dtype=object)
-    field_color_axes = []
-    error_color_axes = []
-    for row in range(2):
-        axes[row, 0] = figure.add_subplot(grid[row, 0])
-        axes[row, 1] = figure.add_subplot(grid[row, 1])
-        axes[row, 2] = figure.add_subplot(grid[row, 2])
-        field_color_axes.append(figure.add_subplot(grid[row, 3]))
-        axes[row, 3] = figure.add_subplot(grid[row, 4])
-        error_color_axes.append(figure.add_subplot(grid[row, 5]))
+
+    field_colorbar_label, error_colorbar_label = colorbar_labels()
 
     for row, component in enumerate(("u", "v")):
         field_images = (truth[row], sparse[row], reconstruction[row])
@@ -560,9 +586,10 @@ def render(args):
             )
 
         field_colorbar = figure.colorbar(field_image, cax=field_color_axes[row])
+        configure_colorbar_axis(field_colorbar, side="left")
         field_colorbar.ax.tick_params(labelsize=10, length=3)
         field_colorbar.set_label(
-            f"{component} (m s$^{{-1}}$)", fontsize=10, rotation=270, labelpad=15
+            field_colorbar_label, fontsize=10, rotation=270, labelpad=15
         )
 
         axis = axes[row, 3]
@@ -577,9 +604,10 @@ def render(args):
             shading=shading,
         )
         error_colorbar = figure.colorbar(error_image, cax=error_color_axes[row])
+        configure_colorbar_axis(error_colorbar, side="right")
         error_colorbar.ax.tick_params(labelsize=10, length=3)
         error_colorbar.set_label(
-            f"|{component} error| (m s$^{{-1}}$)",
+            error_colorbar_label,
             fontsize=10,
             rotation=270,
             labelpad=17,
@@ -609,31 +637,7 @@ def render(args):
         title,
         fontsize=18,
         fontweight="bold",
-        y=0.965,
-    )
-    figure.text(
-        0.5,
-        0.915,
-        f"Held-out test sample {args.sample} | full {height} x {width} domain "
-        f"| {extent_caption} "
-        f"| {format_slice_caption(slice_index, full_depth, args.slice_label)} "
-        f"| Missing rate: {args.mask_ratio:.0%} "
-        f"| Observed fraction: {1.0 - args.mask_ratio:.0%} "
-        f"| Weights: {generator_source}",
-        ha="center",
-        va="center",
-        fontsize=11,
-        color="#334155",
-    )
-    figure.text(
-        0.5,
-        0.035,
-        "Ground truth, observations, and reconstruction share each row's velocity scale; "
-        f"{error_scale_caption(args.error_vmax)}",
-        ha="center",
-        va="center",
-        fontsize=9,
-        color="#475569",
+        y=0.995,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     # Keep the physical canvas fixed across missing rates for stable paper/PPT layout.

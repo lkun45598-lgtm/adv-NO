@@ -40,8 +40,7 @@
 | ERA5 | `[219, 2, 180, 360, 8]` | `185 / 17 / 17` |
 
 PRE 的 `D=30` 表示 30 个 terrain-following sigma 垂向层；ERA5 的 `D=8`
-表示连续的 8 个经 2 倍时间平均后的时间片，不是物理深度。数据文件由预处理
-脚本本地生成，不会提交到 GitHub。
+表示连续的 8 个经 2 倍时间平均后的时间片，不是物理深度。
 
 ## 模型与训练
 
@@ -116,8 +115,8 @@ python -u 3_flow_reconstruction/no/adv_training/prepare_sparse_data.py \
   --cpu-threads 128
 ```
 
-`--cpu-threads` 可按机器资源调整。预处理输出的 HDF5 文件被 `.gitignore`
-排除，需要在本地生成。
+`--cpu-threads` 可按机器资源调整。预处理、训练、评价和绘图脚本均已提交；
+仅由这些脚本生成的 HDF5、checkpoint 和日志等大文件被 `.gitignore` 排除。
 
 ## 两阶段训练
 
@@ -230,12 +229,15 @@ python -u 3_flow_reconstruction/no/adv_training/plot_sparse_visualization.py \
 
 正式图片展示下采样后的完整域，而不是中心 `64 × 64` patch：PRE 为
 `100 × 110`、ERA5 为 `180 × 360`。每张图依次显示 `Ground Truth`、
-`Sparse Observations`、`adv-NO Reconstruction` 和 `Absolute Error`。PRE
+`Sparse Observations`、`adv-NO Reconstruction` 和
+`Absolute Error (|Reconstruction - Ground Truth|)`。PRE
 图片为 `5400 × 2640 px`，使用源 RHO 曲线网格聚合后的真实经纬度
 （约 `112.32--115.67°E`、`20.90--23.12°N`），第五维标为 `Sigma layer`；
 ERA5 图片为 `5400 × 2040 px`，使用真实全球经纬度 `0--360°E`、
 `90°S--90°N`（数组按 `90°N -> 90°S` 降序排列），保持全球场 `2:1` 比例。两类图的列标题均位于图像轴外的
-独立留白区域，误差色标分别固定为 `0--0.12 m s^-1` 和 `0--10 m s^-1`。
+独立留白区域；场值色标标注 `Velocity (m s^-1)`，误差色标标注
+`Absolute error (m s^-1)`，误差范围分别固定为 `0--0.12 m s^-1` 和
+`0--10 m s^-1`。图中不再添加测试样本、维度、缺失率或色标策略的辅助副标题/页脚。
 所有图片均为 `300 dpi`。
 
 ## 核心结果
@@ -294,9 +296,9 @@ PRE 的最终 99% 缺失率测试结果为 Relative L2 `15.35%`、SSIM `0.9672`�
 ## 数据与权重
 
 任务 A/D 的原始数据、处理后的 HDF5、训练日志和新 checkpoint 不提交到
-GitHub，统一由 `.gitignore` 排除。复现实验时需要在本地准备源数据并按上文
-命令生成 `data/` 和 `outputs/`。仓库中保留的少量上游示例权重属于原始项目，
-不代表当前 PRE/ERA5 正式 checkpoint。
+GitHub，统一由 `.gitignore` 排除；对应的预处理、训练、评价和可视化脚本均已
+提交。复现实验时需要在本地准备源数据并按上文命令生成 `data/` 和 `outputs/`。
+仓库中保留的少量上游示例权重属于原始项目，不代表当前 PRE/ERA5 正式 checkpoint。
 
 ## 上游项目与引用
 

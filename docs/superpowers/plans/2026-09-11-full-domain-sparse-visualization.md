@@ -67,7 +67,12 @@ Run the same pytest command and expect all prediction tests to pass.
 Assert the column titles are exactly:
 
 ```python
-("Ground Truth", "Sparse Observations", "adv-NO Reconstruction", "Absolute Error")
+(
+    "Ground Truth",
+    "Sparse Observations",
+    "adv-NO Reconstruction",
+    "Absolute Error\\n(|Reconstruction - Ground Truth|)",
+)
 ```
 
 Assert only the leftmost column displays y tick labels and only the bottom row
@@ -75,8 +80,8 @@ displays x tick labels.
 
 - [x] **Step 2: Run the tests and verify RED**
 
-Expected: failure because current titles use `Reference field` and all panels
-repeat both axes.
+Expected: failure because the current error title is not explicit and colorbar
+labels/side placement are not yet exposed by the plotting module.
 
 - [x] **Step 3: Implement the GridSpec layout**
 
@@ -118,8 +123,9 @@ sigma layer 15 of 30, and rates `0.01 0.10 0.30 0.50 0.70 0.90 0.99`.
 
 - [x] **Step 2: Verify output dimensions and visible domain**
 
-Use Pillow to assert all seven files have identical dimensions. Check the
-subtitle states `full 100 x 110 domain` and `Sigma layer 15 of 30`.
+Use Pillow to assert all seven files have identical dimensions. Confirm the
+plotting input covers the full `100 x 110` domain and the figure contains no
+auxiliary sample/layer subtitle or footer.
 
 - [x] **Step 3: Inspect 1%, 50%, and 99% images**
 
@@ -152,7 +158,8 @@ the global `2:1` field aspect ratio.
 - [x] **Step 3: Verify dimensions and visual quality**
 
 Assert all ERA5 files share one pixel size and inspect 10%, 50%, and 99% for
-layout, readable font size, color scales, and complete-domain coverage.
+layout, readable font size, unit-labelled color scales, complete-domain
+coverage, and absence of auxiliary captions.
 
 ### Task 5: Documentation And Final Verification
 
@@ -165,9 +172,10 @@ layout, readable font size, color scales, and complete-domain coverage.
 - [x] **Step 1: Update documentation**
 
 Replace references to center `64 x 64` figures with PRE `100 x 110` and ERA5
-`180 x 360` full-domain figures. Document the four column titles, physical
-longitude/latitude axes, selected layer/time step, colorbar policy, and
-checkpoint provenance.
+`180 x 360` full-domain figures. Document the four column titles (including the
+explicit absolute-error definition), physical longitude/latitude axes, selected
+layer/time step, unit-labelled colorbar policy, absence of auxiliary captions,
+and checkpoint provenance.
 
 - [x] **Step 2: Run automated verification**
 

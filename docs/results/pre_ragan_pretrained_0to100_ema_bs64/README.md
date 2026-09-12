@@ -16,8 +16,11 @@ patch；统一使用 `18 × 8.8 in`、`300 dpi`（`5400 × 2640 px`）画布。P
 第五维是垂向 sigma 层，图中展示第 15/30 层并标为 `Sigma layer`；空间轴标为
 源 RHO 曲线网格经 `4×4` 聚合后的真实经纬度（约
 `112.32--115.67°E`、`20.90--23.12°N`）。列标题位于图像轴上方的独立留白区域；四列依次为 `Ground Truth`、
-`Sparse Observations`、`adv-NO Reconstruction` 和 `Absolute Error`。前三列
-在每个分量内共享场值色标，u/v 绝对误差固定使用 `0--0.12 m s^-1` 色标。
+`Sparse Observations`、`adv-NO Reconstruction` 和
+`Absolute Error (|Reconstruction - Ground Truth|)`。前三列在每个分量内共享
+`Velocity (m s^-1)` 场值色标，u/v 绝对误差使用 `Absolute error (m s^-1)`
+色标并固定为 `0--0.12 m s^-1`。图中不添加测试样本、维度、缺失率或色标策略
+的辅助副标题/页脚。
 
 | 缺失率 | MAE | RMSE | PSNR (dB) | SSIM | Pearson r |
 | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -31,4 +34,5 @@ patch；统一使用 `18 × 8.8 in`、`300 dpi`（`5400 × 2640 px`）画布。P
 
 原始 JSON 文件按固定缺失率命名：`metrics_1pct.json`、`metrics_10pct.json`、`metrics_30pct.json`、`metrics_50pct.json`、`metrics_70pct.json`、`metrics_90pct.json`、`metrics_99pct.json`。
 
-大数据集 HDF5、checkpoint 和训练日志不提交到 Git；按根目录 README 的复现命令在本地生成。
+大数据集 HDF5、checkpoint 和训练日志不提交到 Git；预处理、训练、评价和绘图
+脚本已提交，按根目录 README 的复现命令在本地生成这些大文件。
