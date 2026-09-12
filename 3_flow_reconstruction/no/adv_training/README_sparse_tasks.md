@@ -165,7 +165,8 @@ Observations`, `adv-NO Reconstruction`, and `Absolute Error
 columns within each row. Field colorbars are labelled `Velocity (m s^-1)` and
 error colorbars `Absolute error (m s^-1)`. PRE uses the source RHO
 curvilinear longitude/latitude grid aggregated with the same 4x4 conservative
-weights as the field, while ERA5 uses the regular global `0--360°E` and
+weights as the field and fixes both major-axis intervals at `0.5°`, while ERA5
+uses the regular global `0--360°E` and
 `90°S--90°N` geographic range; the underlying array preserves the source
 descending-latitude order `90°N -> 90°S`.
 Column titles are placed in a dedicated margin above the image axes, with no

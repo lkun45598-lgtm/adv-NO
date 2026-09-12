@@ -15,7 +15,8 @@
 patch；统一使用 `18 × 8.8 in`、`300 dpi`（`5400 × 2640 px`）画布。PRE
 第五维是垂向 sigma 层，图中展示第 15/30 层并标为 `Sigma layer`；空间轴标为
 源 RHO 曲线网格经 `4×4` 聚合后的真实经纬度（约
-`112.32--115.67°E`、`20.90--23.12°N`）。列标题位于图像轴上方的独立留白区域；四列依次为 `Ground Truth`、
+`112.32--115.67°E`、`20.90--23.12°N`），经纬度主刻度间隔为 `0.5°`。
+列标题位于图像轴上方的独立留白区域；四列依次为 `Ground Truth`、
 `Sparse Observations`、`adv-NO Reconstruction` 和
 `Absolute Error (|Reconstruction - Ground Truth|)`。前三列在每个分量内共享
 `Velocity (m s^-1)` 场值色标，u/v 绝对误差使用 `Absolute error (m s^-1)`

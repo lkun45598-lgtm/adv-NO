@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from matplotlib.gridspec import GridSpec
-from matplotlib.ticker import FuncFormatter
+from matplotlib.ticker import FuncFormatter, MultipleLocator
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))
@@ -301,13 +301,29 @@ def format_latitude_tick(value: float, _position) -> str:
     return _format_degree(abs(value)) + ("N" if value > 0 else "S")
 
 
-def apply_geographic_tick_formatters(axes: np.ndarray) -> None:
-    """Apply cardinal-direction degree labels to visible geographic axes."""
+def geographic_tick_interval(shading: str) -> float | None:
+    """Return the major geographic tick spacing for each grid representation."""
+    if shading == "nearest":
+        return 0.5
+    if shading == "flat":
+        return None
+    raise ValueError(f"unsupported geographic shading: {shading!r}")
+
+
+def apply_geographic_tick_formatters(
+    axes: np.ndarray, major_interval: float | None = None
+) -> None:
+    """Apply cardinal-direction labels and an optional fixed tick interval."""
     longitude_formatter = FuncFormatter(format_longitude_tick)
     latitude_formatter = FuncFormatter(format_latitude_tick)
     for axis in axes.flat:
         axis.xaxis.set_major_formatter(longitude_formatter)
         axis.yaxis.set_major_formatter(latitude_formatter)
+        if major_interval is not None:
+            if major_interval <= 0:
+                raise ValueError("major_interval must be positive")
+            axis.xaxis.set_major_locator(MultipleLocator(major_interval))
+            axis.yaxis.set_major_locator(MultipleLocator(major_interval))
 
 
 def format_row_label(label: str) -> str:
@@ -614,7 +630,9 @@ def render(args):
         )
 
     apply_axis_visibility(axes, x_label, y_label)
-    apply_geographic_tick_formatters(axes)
+    apply_geographic_tick_formatters(
+        axes, major_interval=geographic_tick_interval(shading)
+    )
     for axis in axes.flat:
         axis.set_aspect("auto")
     add_column_titles(figure, axes, titles)

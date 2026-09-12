@@ -70,7 +70,8 @@ ambiguous or unnecessarily abbreviated.
 ## Axes And Typography
 
 - PRE axes: physical longitude/latitude from the source RHO curvilinear grid,
-  aggregated with the same conservative `4 x 4` weights as the field.
+  aggregated with the same conservative `4 x 4` weights as the field. Both
+  major-axis intervals are fixed at `0.5°` for readable, consistent spacing.
 - ERA5 axes: physical longitude `0--360°E` and latitude `90°S--90°N`; the
   source descending array order `90°N -> 90°S` is preserved.
 - Y-axis labels and ticks appear only in the leftmost column.
